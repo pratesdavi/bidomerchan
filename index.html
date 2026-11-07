@@ -22,13 +22,14 @@
       linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
     background-size:auto,auto,32px 32px,32px 32px;background-attachment:fixed}
   .hidden{display:none!important}
-  .wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left))}
   a{color:inherit}
 
   /* ---------- Topo ---------- */
   header{position:sticky;top:0;z-index:20;background:rgba(7,9,13,.78);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);border-bottom:1px solid var(--borda)}
   header::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,var(--acc) 30%,var(--teal) 70%,transparent);opacity:.6}
-  .topo{display:flex;align-items:center;gap:12px;padding:12px 0}
+  .topo{display:flex;align-items:center;gap:12px;padding-top:12px;padding-bottom:12px}
+  .topo .t h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .topo img{width:42px;height:42px;border-radius:50%;box-shadow:0 0 0 1px rgba(255,45,85,.35),0 0 24px rgba(255,45,85,.35)}
   .topo .t{flex:1;min-width:0}
   .rotulo{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--sub)}
@@ -125,7 +126,7 @@
   @keyframes sobe{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
   @keyframes surge{to{opacity:1;filter:none;transform:none}}
   @keyframes pulsa{50%{box-shadow:0 0 0 1px rgba(255,45,85,.5),0 0 0 14px rgba(255,45,85,.04),0 0 80px rgba(255,45,85,.6)}}
-  @media (max-width:480px){ .relogio span{display:none} }
+  @media (max-width:480px){ .relogio span{display:none} .topo{gap:10px} .topo img{width:36px;height:36px} .topo h1{font-size:16px} .rotulo{font-size:9px;letter-spacing:1.4px} }
   @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} .i-palavras span,.i-palavras i,.i-sub,.i-ic{opacity:1;filter:none;transform:translate(-50%,-50%)} .i-palavras span,.i-palavras i{transform:none} }
 </style>
 </head>
@@ -201,13 +202,13 @@
 
     { grupo: 'Treinamento', titulo: 'Plataforma de Cursos', texto: 'Trilhas e treinamentos do time de Merchandising Catupiry.', para: 'Todo o time', icone: 'curso', cor: 'roxo', url: 'https://script.google.com/macros/s/AKfycbwI0CM6wDBAEsjOoNRUUsKZ4jHM8iAJwbX0kyy818aRZYhUZnuGGe-8QJSpn12aNamtag/exec' },
 
-    { grupo: 'Engajamento', titulo: 'Votação Esquadrão X', texto: 'Escolha do nome e do grito de guerra da campanha de incentivo.', para: 'Todo o time', icone: 'voto', cor: 'vermelho', url: '' },
+    { grupo: 'Engajamento', titulo: 'Votação Esquadrão X', texto: 'Escolha do nome e do grito de guerra da campanha de incentivo.', para: 'Todo o time', icone: 'voto', cor: 'vermelho', url: 'https://script.google.com/macros/s/AKfycbwI0CM6wDBAEsjOoNRUUsKZ4jHM8iAJwbX0kyy818aRZYhUZnuGGe-8QJSpn12aNamtag/exec' },
 
-    { grupo: 'Relatórios', titulo: 'Loja Perfeita', texto: 'Painel de pontuação e ranking do programa Excelência PDV.', para: 'Gestão', icone: 'grafico', cor: 'navy', url: '' },
-    { grupo: 'Relatórios', titulo: 'Custo de Servir', texto: 'Scorecards regionais de eficiência de atendimento.', para: 'Gestão', icone: 'grafico', cor: 'navy', url: '' },
-    { grupo: 'Relatórios', titulo: 'Pesquisa Spot', texto: 'Pesquisa de preço da concorrência por SKU.', para: 'Gestão', icone: 'grafico', cor: 'navy', url: '' },
+    { grupo: 'Relatórios', titulo: 'Loja Perfeita', texto: 'Painel de pontuação e ranking do programa Excelência PDV.', para: 'Gestão', icone: 'grafico', cor: 'navy', url: 'https://script.google.com/macros/s/AKfycbwI0CM6wDBAEsjOoNRUUsKZ4jHM8iAJwbX0kyy818aRZYhUZnuGGe-8QJSpn12aNamtag/exec' },
+    { grupo: 'Relatórios', titulo: 'Custo de Servir', texto: 'Scorecards regionais de eficiência de atendimento.', para: 'Gestão', icone: 'grafico', cor: 'navy', url: 'https://script.google.com/macros/s/AKfycbwI0CM6wDBAEsjOoNRUUsKZ4jHM8iAJwbX0kyy818aRZYhUZnuGGe-8QJSpn12aNamtag/exec' },
+    { grupo: 'Relatórios', titulo: 'Pesquisa Spot', texto: 'Pesquisa de preço da concorrência por SKU.', para: 'Gestão', icone: 'grafico', cor: 'navy', url: 'https://script.google.com/macros/s/AKfycbwI0CM6wDBAEsjOoNRUUsKZ4jHM8iAJwbX0kyy818aRZYhUZnuGGe-8QJSpn12aNamtag/exec' },
 
-    { grupo: 'BI Merchan', titulo: 'Central do BI', texto: 'Solicitações ao BI (cadastro de loja, inclusão de pessoas) e acompanhamento dos pedidos.', para: 'Com login', icone: 'painel', cor: 'marrom', url: '' }
+    { grupo: 'BI Merchan', titulo: 'Central do BI', texto: 'Solicitações ao BI (cadastro de loja, inclusão de pessoas) e acompanhamento dos pedidos.', para: 'Com login', icone: 'painel', cor: 'marrom', url: 'https://script.google.com/macros/s/AKfycbwI0CM6wDBAEsjOoNRUUsKZ4jHM8iAJwbX0kyy818aRZYhUZnuGGe-8QJSpn12aNamtag/exec' }
   ];
 
   /* ===================== daqui para baixo não precisa mexer ===================== */
