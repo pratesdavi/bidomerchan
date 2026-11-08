@@ -451,7 +451,7 @@
   document.querySelectorAll('img[data-logo]').forEach(i => { i.src = $('logoBase').src; });
   const K_LOGIN = 'centralbi.login', K_SSO = 'merchan.sso';
   let CRED = null, D = null, aba = 'geral';
-  const F = { dClass: 'todas', dStatus: 'ativas', dTipo: '', dBusca: '', cForn: '', cStatus: 'abertos', rFiltro: 'todas', relRot: '', relMes: '', relPara: '', vSeg: '', agF: '', tgSup: '', tgTodos: false };
+  const F = { dClass: 'todas', dStatus: 'ativas', dTipo: '', dBusca: '', cForn: '', cStatus: 'abertos', rFiltro: 'todas', relRot: '', relMes: '', relPara: '', vSeg: '', agF: '', tgSup: '', tgLider: '', tgTodos: false };
 
   /* ---------- Utilidades ---------- */
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -1573,6 +1573,38 @@
 
   /* ---------- TRI GOLD (só ADMIN e GESTOR) ---------- */
   const TIPO_TG = { GONDOLA: 'Ponta de gôndola', GELADEIRA: 'Porta de geladeira', ILHA: 'Ilha' };
+  const reais = n => 'R$ ' + Number(n || 0).toLocaleString('pt-BR');
+  function premiacaoHtml(T){
+    const P = T.premiacao;
+    if (!P) return '';
+    if (!P.grupos.length) return `<div class="secao">Premiação</div><div class="aviso">Para montar a premiação, defina o <b>líder</b> de cada promotor no app TRI GOLD (aba Equipe).</div>`;
+    const medalha = k => ['🥇', '🥈', '🥉'][k] || (k + 1) + 'º';
+    const lid = F.tgLider && P.grupos.some(g => g.lider === F.tgLider) ? F.tgLider : P.grupos[0].lider;
+    const g = P.grupos.find(x => x.lider === lid);
+    const mx = Math.max(1, ...g.ranking.map(r => r.pontos));
+    const lista = g.ranking.slice(0, F.tgTodos ? 999 : Math.max(10, P.premiosInd.length));
+    return `
+      <div class="secao">Melhor média por equipe de líder</div>
+      <div class="ajuda">Média = pontos aprovados da equipe ÷ número de promotores da equipe. Prêmios: ${P.premiosEq.map((v, k) => (k + 1) + 'º ' + reais(v)).join(' · ')}.</div>
+      <div class="bloco" style="margin-top:10px;overflow-x:auto"><table class="tabela-tg"><tr><th></th><th>Líder</th><th>Supervisor</th><th>Promotores</th><th>Pontos</th><th>Média</th><th>Prêmio</th></tr>
+        ${P.grupos.map((e, k) => `<tr style="${e.premio ? '' : 'opacity:.75'}"><td style="font-size:16px">${medalha(k)}</td><td><b>${esc(e.lider)}</b></td><td>${esc(e.supervisores.join(', ') || '—')}</td><td>${e.membros}</td>
+          <td>${e.soma.toLocaleString('pt-BR')}</td><td class="mono" style="color:#fff;font-weight:700">${e.media.toLocaleString('pt-BR')}</td>
+          <td>${e.premio ? `<span class="tag t-feito">${reais(e.premio)}</span>` : '—'}${e.empate ? ' <span class="tag t-ultimo">empate</span>' : ''}</td></tr>`).join('')}</table></div>
+      ${P.semLider ? `<div class="aviso">${pl(P.semLider, 'promotor está', 'promotores estão')} sem líder definido e fora da premiação. Ajuste no app TRI GOLD › Equipe.</div>` : ''}
+      <div class="secao">Ranking por equipe · top ${P.premiosInd.length} premiados</div>
+      <div class="ajuda">Prêmios em cada equipe: ${P.premiosInd.map((v, k) => (k + 1) + 'º ' + reais(v)).join(' · ')}. Desempate: mais pontos extras aprovados, depois mais gôndolas.</div>
+      <div class="filtros" data-f="tgLider">${P.grupos.map(e => `<button class="chip ${e.lider === lid ? 'on' : ''}" data-v="${esc(e.lider)}">${esc(e.lider)}</button>`).join('')}</div>
+      <div class="bloco" style="margin-top:10px">
+        <div class="c-meta" style="margin:6px 0 4px"><span>${pl(g.membros, 'promotor', 'promotores')}</span><span>média ${g.media.toLocaleString('pt-BR')} pts</span><span>${esc(g.supervisores.join(', '))}</span></div>
+        ${lista.map(r => `<div class="vt ${r.premio ? 'top' : ''}"><div class="vt-cab"><span class="vt-pos">${r.posicao}º</span>
+          <b>${esc(r.colab)} <small style="color:var(--sub);font-weight:500">· ${esc(r.uf)}</small>${r.premio ? ` <span class="tag t-feito">${reais(r.premio)}</span>` : ''}${r.empate ? ' <span class="tag t-ultimo">empate</span>' : ''}</b>
+          <span class="vt-n">${r.pontos.toLocaleString('pt-BR')}<small> pts</small></span></div>
+          <i class="vt-barra"><u style="width:${Math.round(r.pontos / mx * 100)}%"></u></i>
+          <div class="vt-seg"><span>Aprovados <b>${r.aprovadas}</b></span><span>Gôndolas <b>${r.gondolas}</b></span>${r.pendentes ? `<span style="color:var(--amarelo)">+${r.potencial} pts em validação</span>` : ''}</div></div>`).join('')}
+        ${g.ranking.length > lista.length || F.tgTodos ? `<button class="btn sec mini" data-acao="tgTodos" style="margin:10px 0">${F.tgTodos ? 'Mostrar menos' : 'Ver todos os ' + g.ranking.length}</button>` : ''}
+        ${g.ranking.some(r => r.empate) ? '<div class="ajuda" style="padding:4px 0 10px">Há empate que muda o valor do prêmio: confira os critérios antes de pagar.</div>' : ''}
+      </div>`;
+  }
   function renderTrigold(){
     const T = D.trigold || {};
     if (!T.ligado) { $('v-trigold').innerHTML = `<div class="aviso">O acompanhamento da campanha aparece aqui quando a planilha do app TRI GOLD estiver ligada. Cole o link dela em <b>⚙ Configurações › Ligações</b>, no campo <b>"Planilha da TRI GOLD"</b>, salve e toque em ↻.</div>`; return; }
@@ -1580,11 +1612,9 @@
     const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
     const validos = T.total - T.duplicadas, decididos = T.aprovadas + T.repSup + T.repBko;
     const kp = (cls, t, v, sub, p) => `<div class="kpi ${cls}" style="cursor:default"><span>${t}</span><b>${v}</b><small>${sub}</small>${p != null ? `<i class="kbar"><u style="width:${p}%"></u></i>` : ''}</div>`;
-    const sups = [...new Set(T.ranking.map(r => r.supervisor || 'Sem supervisor'))].sort();
-    const rk = T.ranking.filter(r => !F.tgSup || (r.supervisor || 'Sem supervisor') === F.tgSup);
-    const top = rk.slice(0, F.tgTodos ? 999 : 15), mx = Math.max(1, ...rk.map(r => r.pontos));
     let html = `<div class="kpis">
         ${kp('k-marrom', 'Pontos validados', T.pontos.toLocaleString('pt-BR'), pl(T.aprovadas, 'ponto extra aprovado', 'pontos extras aprovados') + ' nas 2 etapas')}
+        ${T.premiacao ? kp('k-verde', 'Premiação prevista', reais(T.premiacao.total), reais(T.premiacao.totalIndividual) + ' individual · ' + reais(T.premiacao.totalEquipe) + ' equipes') : ''}
         ${kp('k-teal', 'Validação concluída', pct(decididos, validos) + '%', decididos + ' de ' + validos + ' envios válidos', pct(decididos, validos))}
         ${kp('k-navy', 'Aguardam supervisor', T.pendSup, 'primeira etapa')}
         ${kp('k-cinza', 'Aguardam BKO', T.pendBko, 'double check')}
@@ -1592,14 +1622,7 @@
         ${kp('k-cinza', 'Duplicadas', T.duplicadas, 'mesma loja, semana e tipo')}
       </div>
       <div class="ajuda" style="margin-top:10px">Regra: vale 1 ponto extra de cada tipo por promotor, loja e semana. Gôndola ${T.pontosTipo.GONDOLA} · geladeira ${T.pontosTipo.GELADEIRA} · ilha ${T.pontosTipo.ILHA} pontos. Só soma depois do supervisor e do BKO.</div>
-      <div class="secao">Ranking dos promotores</div>
-      <div class="filtros" data-f="tgSup">${[''].concat(sups).map(s => `<button class="chip ${F.tgSup === s ? 'on' : ''}" data-v="${esc(s)}">${s ? esc(s) : 'Todos'}</button>`).join('')}</div>
-      <div class="bloco" style="margin-top:10px">${top.map((r, k) => `<div class="vt ${k === 0 && r.pontos ? 'top' : ''}"><div class="vt-cab"><span class="vt-pos">${k === 0 && r.pontos ? '★' : (k + 1) + 'º'}</span>
-          <b>${esc(r.colab)} <small style="color:var(--sub);font-weight:500">· ${esc(r.uf)} · ${esc(r.supervisor || 'sem supervisor')}</small></b><span class="vt-n">${r.pontos.toLocaleString('pt-BR')}<small> pts</small></span></div>
-          <i class="vt-barra"><u style="width:${Math.round(r.pontos / mx * 100)}%"></u></i>
-          <div class="vt-seg"><span>Gôndola <b>${r.tipos.GONDOLA || 0}</b></span><span>Geladeira <b>${r.tipos.GELADEIRA || 0}</b></span><span>Ilha <b>${r.tipos.ILHA || 0}</b></span>
-            ${r.pendentes ? `<span style="color:var(--amarelo)">+${r.potencial} pts em validação</span>` : ''}${r.duplicadas ? `<span>${r.duplicadas} dup.</span>` : ''}</div></div>`).join('') || '<div class="vazio">Sem envios.</div>'}
-        ${rk.length > 15 ? `<button class="btn sec mini" data-acao="tgTodos" style="margin:10px 0">${F.tgTodos ? 'Mostrar só os 15 primeiros' : 'Ver todos os ' + rk.length}</button>` : ''}</div>
+      ${premiacaoHtml(T)}
       <div class="secao">Supervisor x BKO</div>
       <div class="ajuda">Divergência = fotos que o supervisor aprovou e o BKO reprovou. Quanto maior, mais o supervisor está aprovando fora do critério.</div>
       <div class="bloco" style="margin-top:10px;overflow-x:auto"><table class="tabela-tg"><tr><th>Supervisor</th><th>BKO</th><th>Envios</th><th>Pendentes</th><th>Aprovou</th><th>Reprovou</th><th>BKO conferiu</th><th>Divergência</th></tr>
@@ -1676,7 +1699,7 @@
     const fo = t.closest('[data-forn]'); if (fo) { F.cForn = fo.dataset.forn; return renderChamados(); }
     const rf = t.closest('[data-rf]'); if (rf) { F.rFiltro = rf.dataset.rf; return renderRotinas(); }
     const chip = t.closest('.filtros .chip');
-    if (chip) { const k = chip.parentElement.dataset.f; F[k] = chip.dataset.v; return ({ dClass: renderDemandas, cStatus: renderChamados, rFiltro: renderRotinas, vSeg: renderVotacao, agF: renderAgenda, tgSup: renderTrigold })[k](); }
+    if (chip) { const k = chip.parentElement.dataset.f; F[k] = chip.dataset.v; return ({ dClass: renderDemandas, cStatus: renderChamados, rFiltro: renderRotinas, vSeg: renderVotacao, agF: renderAgenda, tgSup: renderTrigold, tgLider: () => { F.tgTodos = false; renderTrigold(); } })[k](); }
   });
   let tB;
   document.body.addEventListener('input', e => { const k = e.target.dataset && e.target.dataset.f; if (k === 'dBusca') { F.dBusca = e.target.value; clearTimeout(tB); tB = setTimeout(() => { renderDemandas(); const el = document.querySelector('[data-f="dBusca"]'); el.focus(); el.setSelectionRange(el.value.length, el.value.length); }, 250); } });
