@@ -337,7 +337,7 @@
      (ao lado deste index.html):  window.API_URL = 'https://script.google.com/macros/s/.../exec';
      Dentro do próprio Apps Script nada disso é usado.
      ===================================================================== */
-  const API_URL = window.API_URL || 'https://script.google.com/macros/s/AKfycbzA0JvbZGSoXrj9DAvk1yxMoW0htsvNPkYRRtQlyCAQTpz_ZZIWrMLaKCewTRYQBjs_/exec';
+  const API_URL = window.API_URL || 'COLE_AQUI_O_LINK_EXEC';
   const NO_GOOGLE = !!(window.google && google.script && google.script.run);
   if (!NO_GOOGLE) window.google = { script: { get run(){ return chamadaApi(); } } };
   function chamadaApi(){
@@ -429,7 +429,7 @@
   }
   function renderAbas(){
     const n = { validar: FILA.length };
-    if (D.equipe) n.equipe = D.equipe.filter(e => !e.supervisor).length;
+    if (D.equipe) n.equipe = D.equipe.filter(e => !e.supervisor || !e.lider).length;
     if (D.senhas && !D.senhas[D.semanaAtual]) n.senhas = '!';
     $('abas').innerHTML = abasDo().map(([k, t]) => `<button class="aba ${k === aba ? 'on' : ''}" data-aba="${k}">${t}${n[k] ? `<b class="${k !== 'validar' ? 'alerta' : ''}">${n[k]}</b>` : ''}</button>`).join('');
   }
@@ -581,23 +581,28 @@
 
   /* ---------- Equipe (ADMIN) ---------- */
   function renderEquipe(){
-    const E = D.equipe.slice().sort((a, b) => (!!a.supervisor - !!b.supervisor) || a.uf.localeCompare(b.uf) || a.colab.localeCompare(b.colab));
-    const sups = D.supervisores;
-    const l = F.eqFiltro === 'sem' ? E.filter(e => !e.supervisor) : E;
+    const E = D.equipe.slice().sort((a, b) => (!!(a.supervisor && a.lider) - !!(b.supervisor && b.lider)) || a.uf.localeCompare(b.uf) || a.colab.localeCompare(b.colab));
+    const sups = D.supervisores, lids = D.lideres || [];
+    const falta = e => !e.supervisor || !e.lider;
+    const l = F.eqFiltro === 'sem' ? E.filter(falta) : E;
     const ufs = [...new Set(E.map(e => e.uf))].sort();
-    const reg = {}; D.regrasUF.forEach(r => reg[r.uf] = r.supervisor);
+    const reg = {}; D.regrasUF.forEach(r => reg[r.uf] = r);
     const sel = (v, attr) => `<select ${attr}><option value="">—</option>${sups.map(s => `<option ${s === v ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>`;
+    const lid = (v, attr) => `<input ${attr} list="dlLid" value="${esc(v || '')}" placeholder="Nome do líder">`;
+    const porLider = {}; E.forEach(e => { if (e.lider) porLider[e.lider] = (porLider[e.lider] || 0) + 1; });
     $('v-equipe').innerHTML = `
-      <div class="secao">Supervisor por UF <button class="btn mini" data-acao="salvarRegras">Salvar regras</button></div>
-      <div class="ajuda">Promotor novo que chegar numa importação já entra com o supervisor da UF dele. Em "Aplicar", a regra vale também para quem está sem supervisor.</div>
-      <div class="bloco" style="margin-top:10px"><table class="tabela"><tr><th>UF</th><th>Supervisor</th><th>Promotores</th></tr>
-        ${ufs.map(u => `<tr><td class="mono">${esc(u)}</td><td>${sel(reg[u] || '', `data-reguf="${esc(u)}"`)}</td><td>${E.filter(e => e.uf === u).length}</td></tr>`).join('')}</table>
-        <button class="btn sec mini" data-acao="aplicarRegras" style="margin:10px 0 6px">Aplicar a regra nos promotores sem supervisor</button></div>
+      <datalist id="dlLid">${lids.map(x => `<option value="${esc(x)}">`).join('')}</datalist>
+      <div class="secao">Supervisor e líder por UF <button class="btn mini" data-acao="salvarRegras">Salvar regras</button></div>
+      <div class="ajuda">Promotor novo que chegar numa importação já entra com o supervisor e o líder da UF dele. O <b>líder define a equipe</b> da premiação (top 5 de cada equipe e a melhor média).</div>
+      <div class="bloco" style="margin-top:10px;overflow-x:auto"><table class="tabela"><tr><th>UF</th><th>Supervisor</th><th>Líder</th><th>Promotores</th></tr>
+        ${ufs.map(u => `<tr><td class="mono">${esc(u)}</td><td>${sel((reg[u] || {}).supervisor || '', `data-reguf="${esc(u)}"`)}</td><td>${lid((reg[u] || {}).lider, `data-reglid="${esc(u)}"`)}</td><td>${E.filter(e => e.uf === u).length}</td></tr>`).join('')}</table>
+        <button class="btn sec mini" data-acao="aplicarRegras" style="margin:10px 0 6px">Aplicar a regra em quem está sem supervisor ou sem líder</button></div>
+      ${Object.keys(porLider).length ? `<div class="c-meta" style="margin-top:10px">${Object.keys(porLider).sort().map(x => `<span class="tag t-tipo">${esc(x)} · ${porLider[x]}</span>`).join('')}</div>` : ''}
       <div class="secao">Promotores <button class="btn mini" data-acao="salvarEquipe">Salvar equipe</button></div>
-      <div class="filtros" data-f="eqFiltro"><button class="chip ${F.eqFiltro === 'sem' ? 'on' : ''}" data-v="sem">Sem supervisor (${E.filter(e => !e.supervisor).length})</button><button class="chip ${F.eqFiltro === 'todos' ? 'on' : ''}" data-v="todos">Todos (${E.length})</button></div>
-      <div class="bloco" style="margin-top:10px">${l.length ? `<table class="tabela"><tr><th>Promotor</th><th>UF</th><th>Supervisor</th></tr>
-        ${l.map(e => `<tr><td>${esc(e.colab)}</td><td class="mono">${esc(e.uf)}</td><td>${sel(e.supervisor, `data-eq="${esc(e.colab)}"`)}</td></tr>`).join('')}</table>` : '<div class="vazio">Todo mundo tem supervisor. 👏</div>'}</div>
-      <div class="aviso">Os nomes dos supervisores vêm da aba Acessos (perfil SUPERVISOR). O BKO de cada supervisor é definido em Acessos.</div>`;
+      <div class="filtros" data-f="eqFiltro"><button class="chip ${F.eqFiltro === 'sem' ? 'on' : ''}" data-v="sem">Sem supervisor ou líder (${E.filter(falta).length})</button><button class="chip ${F.eqFiltro === 'todos' ? 'on' : ''}" data-v="todos">Todos (${E.length})</button></div>
+      <div class="bloco" style="margin-top:10px;overflow-x:auto">${l.length ? `<table class="tabela"><tr><th>Promotor</th><th>UF</th><th>Supervisor</th><th>Líder</th></tr>
+        ${l.map(e => `<tr><td>${esc(e.colab)}</td><td class="mono">${esc(e.uf)}</td><td>${sel(e.supervisor, `data-eq="${esc(e.colab)}"`)}</td><td>${lid(e.lider, `data-eqlid="${esc(e.colab)}"`)}</td></tr>`).join('')}</table>` : '<div class="vazio">Todo mundo tem supervisor e líder. 👏</div>'}</div>
+      <div class="aviso">Os supervisores vêm do cadastro de acessos (perfil Supervisor na TRI GOLD). O líder é só o nome da equipe na premiação: escreva igual para todos do mesmo time.</div>`;
   }
 
   /* ---------- Importar (ADMIN) ---------- */
@@ -746,19 +751,22 @@
       if (k === 'novoAcesso') return formAcesso();
       if (k === 'ligarCentral') { const v = $('lkCentral').value.trim(); if (!v) return toast('Cole o link da planilha da Central.'); return chamar('ligarCadastroCentral', [v], () => carregar('Cadastro único ligado.'), a); }
       if (k === 'desligarCentral') return chamar('ligarCadastroCentral', [''], () => carregar('Voltou para o cadastro local.'), a);
-      if (k === 'salvarRegras') return chamar('salvarRegrasUF', [[...document.querySelectorAll('[data-reguf]')].map(s => ({ uf: s.dataset.reguf, supervisor: s.value }))], () => carregar('Regras salvas.'), a);
-      if (k === 'aplicarRegras') { const reg = {}; document.querySelectorAll('[data-reguf]').forEach(s => reg[s.dataset.reguf] = s.value);
-        const lista = D.equipe.filter(x => !x.supervisor && reg[x.uf]).map(x => ({ colab: x.colab, supervisor: reg[x.uf] }));
-        if (!lista.length) return toast('Ninguém sem supervisor nas UFs com regra.');
+      if (k === 'salvarRegras') return chamar('salvarRegrasUF', [[...document.querySelectorAll('[data-reguf]')].map(s => ({ uf: s.dataset.reguf, supervisor: s.value,
+        lider: document.querySelector(`[data-reglid="${s.dataset.reguf}"]`).value.trim() }))], () => carregar('Regras salvas.'), a);
+      if (k === 'aplicarRegras') { const reg = {}; document.querySelectorAll('[data-reguf]').forEach(s => reg[s.dataset.reguf] = { sup: s.value, lid: document.querySelector(`[data-reglid="${s.dataset.reguf}"]`).value.trim() });
+        const lista = D.equipe.filter(x => reg[x.uf] && ((!x.supervisor && reg[x.uf].sup) || (!x.lider && reg[x.uf].lid)))
+          .map(x => ({ colab: x.colab, supervisor: x.supervisor || reg[x.uf].sup, lider: x.lider || reg[x.uf].lid }));
+        if (!lista.length) return toast('Ninguém para completar nas UFs com regra.');
         return chamar('salvarEquipe', [lista], () => carregar(pl(lista.length, 'promotor recebeu', 'promotores receberam') + ' supervisor.'), a); }
-      if (k === 'salvarEquipe') return chamar('salvarEquipe', [[...document.querySelectorAll('[data-eq]')].map(s => ({ colab: s.dataset.eq, supervisor: s.value }))], () => carregar('Equipe salva.'), a);
+      if (k === 'salvarEquipe') return chamar('salvarEquipe', [[...document.querySelectorAll('[data-eq]')].map(s => ({ colab: s.dataset.eq, supervisor: s.value,
+        lider: document.querySelector(`[data-eqlid="${CSS.escape(s.dataset.eq)}"]`).value.trim() }))], () => carregar('Equipe salva.'), a);
       if (k === 'salvarProdutos') return chamar('salvarProdutos', [[...document.querySelectorAll('[data-prod]')].map(i => ({ id: i.dataset.prod, nome: i.value.trim() }))], () => carregar('Produtos salvos.'), a);
     }
     const chip = t.closest('.filtros .chip');
     if (chip && chip.parentElement.dataset.f) { F[chip.parentElement.dataset.f] = chip.dataset.v; return chip.parentElement.dataset.f === 'eqFiltro' ? renderEquipe() : renderEnvios(); }
   });
   document.body.addEventListener('change', e => {
-    const k = e.target.dataset && e.target.dataset.f; if (!k || k === 'busca') return;ff1
+    const k = e.target.dataset && e.target.dataset.f; if (!k || k === 'busca') return;
     F[k] = e.target.value; if (k === 'semana') F.colab = '';
     POS = 0; FOTO = 0; montarFila(); renderValidar(); renderEnvios(); renderAbas();
   });
