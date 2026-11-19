@@ -464,7 +464,7 @@
     if (D.senhas && !D.senhas[D.semanaAtual]) n.senhas = '!';
     $('abas').innerHTML = abasDo().map(([k, t]) => `<button class="aba ${k === aba ? 'on' : ''}" data-aba="${k}">${t}${n[k] ? `<b class="${k !== 'validar' ? 'alerta' : ''}">${n[k]}</b>` : ''}</button>`).join('');
   }
-  const faltaEq = e => !e.supervisor || (e.time !== 'SPOT' && !e.lider);
+  const faltaEq = e => !e.supervisor;   // DIRETOS sem líder é permitido: vira equipe do supervisor, só prêmio individual
   function renderTudo(){ renderValidar(); renderEnvios(); if (perfil() === 'ADMIN') { renderSenhas(); renderEquipe(); renderImportar(); renderAcessos(); } }
   function irAba(k, sem){
     aba = k; document.querySelectorAll('.aba').forEach(b => b.classList.toggle('on', b.dataset.aba === k));
@@ -644,11 +644,11 @@
     const ufs = [...new Set(E.filter(e => e.time !== 'SPOT').map(e => e.uf))].sort();
     const reg = {}; D.regrasUF.forEach(r => reg[r.uf] = r);
     const sel = (v, attr) => `<select ${attr}><option value="">—</option>${sups.map(s => `<option ${s === v ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>`;
-    const lid = (v, attr) => `<input ${attr} list="dlLid" value="${esc(v || '')}" placeholder="Nome do líder">`;
+    const lid = (v, attr) => `<input ${attr} list="dlLid" value="${esc(v || '')}" placeholder="Sem líder = só prêmio individual">`;
     const supCel = e => e.time === 'SPOT' ? `<input data-eq="${esc(e.colab)}" list="dlSpot" value="${esc(e.supervisor || '')}" placeholder="Supervisor SPOT">` : sel(e.supervisor, `data-eq="${esc(e.colab)}"`);
     const lidCel = e => e.time === 'SPOT' ? `<input data-eqlid="${esc(e.colab)}" disabled value="" placeholder="equipe = supervisor SPOT">` : lid(e.lider, `data-eqlid="${esc(e.colab)}"`);
     const timeCel = e => `<select data-eqtime="${esc(e.colab)}" style="min-width:110px">${['DIRETOS', 'SPOT'].map(t => `<option ${(e.time || 'DIRETOS') === t ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
-    const porEq = {}; E.forEach(e => { const n = e.time === 'SPOT' ? e.supervisor : e.lider; if (n) { const k = (e.time === 'SPOT' ? 'SPOT' : 'DIRETOS') + '|' + n; porEq[k] = (porEq[k] || 0) + 1; } });
+    const porEq = {}; E.forEach(e => { const n = e.time === 'SPOT' ? e.supervisor : (e.lider || (e.supervisor ? e.supervisor + ' · só individual' : '')); if (n) { const k = (e.time === 'SPOT' ? 'SPOT' : 'DIRETOS') + '|' + n; porEq[k] = (porEq[k] || 0) + 1; } });
     const nS = E.filter(e => e.time === 'SPOT').length;
     $('v-equipe').innerHTML = `
       <datalist id="dlLid">${lids.map(x => `<option value="${esc(x)}">`).join('')}</datalist>
@@ -657,14 +657,15 @@
       <div class="ajuda">Vale só para o time DIRETOS: promotor novo que chegar numa importação já entra com o supervisor e o líder da UF dele. No DIRETOS, o <b>líder define a equipe</b> da premiação; na SPOT, a equipe é o <b>supervisor da agência</b>.</div>
       <div class="bloco" style="margin-top:10px;overflow-x:auto"><table class="tabela"><tr><th>UF</th><th>Supervisor</th><th>Líder</th><th>Promotores</th></tr>
         ${ufs.map(u => `<tr><td class="mono">${esc(u)}</td><td>${sel((reg[u] || {}).supervisor || '', `data-reguf="${esc(u)}"`)}</td><td>${lid((reg[u] || {}).lider, `data-reglid="${esc(u)}"`)}</td><td>${E.filter(e => e.uf === u && e.time !== 'SPOT').length}</td></tr>`).join('')}</table>
-        <button class="btn sec mini" data-acao="aplicarRegras" style="margin:10px 0 6px">Aplicar a regra em quem está sem supervisor ou sem líder</button></div>
+        <button class="btn sec mini" data-acao="aplicarRegras" style="margin:10px 0 6px">Aplicar a regra em quem está sem supervisor ou sem líder</button>
+        <div class="ajuda" style="margin-bottom:6px">Supervisor sem líder (ex.: Bárbara)? Deixe o líder da UF em branco: o time vira a equipe do supervisor e disputa só o prêmio individual, fora da média por equipe.</div></div>
       ${Object.keys(porEq).length ? `<div class="c-meta" style="margin-top:10px">${Object.keys(porEq).sort().map(k => `<span class="tag ${k.startsWith('SPOT') ? 'tm-SPOT' : 't-tipo'}">${esc(k.split('|')[1])} · ${porEq[k]}</span>`).join('')}</div>` : ''}
       <div class="secao">Promotores <button class="btn mini" data-acao="salvarEquipe">Salvar equipe</button></div>
-      <div class="filtros" data-f="eqFiltro">${[['sem', `Sem supervisor ou equipe (${E.filter(faltaEq).length})`], ['DIRETOS', `DIRETOS (${E.length - nS})`], ['SPOT', `SPOT (${nS})`], ['todos', `Todos (${E.length})`]]
+      <div class="filtros" data-f="eqFiltro">${[['sem', `Sem supervisor (${E.filter(faltaEq).length})`], ['DIRETOS', `DIRETOS (${E.length - nS})`], ['SPOT', `SPOT (${nS})`], ['todos', `Todos (${E.length})`]]
         .map(([k, t]) => `<button class="chip ${F.eqFiltro === k ? 'on' : ''}" data-v="${k}">${t}</button>`).join('')}</div>
       <div class="bloco" style="margin-top:10px;overflow-x:auto">${l.length ? `<table class="tabela"><tr><th>Promotor</th><th>UF</th><th>Time</th><th>Supervisor</th><th>Líder</th></tr>
         ${l.map(e => `<tr><td>${esc(e.colab)}</td><td class="mono">${esc(e.uf)}</td><td>${timeCel(e)}</td><td>${supCel(e)}</td><td>${lidCel(e)}</td></tr>`).join('')}</table>` : '<div class="vazio">Ninguém neste filtro.</div>'}</div>
-      <div class="aviso">DIRETOS: o supervisor vem do cadastro de acessos (perfil Supervisor na TRI GOLD) e o líder é o nome da equipe na premiação, escrito igual para todo o time.
+      <div class="aviso">DIRETOS: o supervisor vem do cadastro de acessos (perfil Supervisor na TRI GOLD) e o líder é o nome da equipe na premiação, escrito igual para todo o time. Sem líder, o promotor entra na equipe do supervisor, só com prêmio individual.
         SPOT: escreva o nome do supervisor da agência; ele é a equipe na premiação. A 1ª validação da SPOT é feita pelo validador da agência (perfil Validador SPOT).</div>`;
   }
 
