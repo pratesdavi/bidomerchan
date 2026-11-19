@@ -1589,7 +1589,7 @@
     if (!P) return '';
     if (!P.grupos.length) return `<div class="secao">Premiação</div><div class="aviso">Para montar a premiação, defina a equipe de cada promotor no app TRI GOLD (aba Equipe): <b>líder</b> no DIRETOS, <b>supervisor da agência</b> na SPOT.</div>`;
     const medalha = k => ['🥇', '🥈', '🥉'][k] || (k + 1) + 'º';
-    const chave = g => g.time + '|' + g.lider;
+    const chave = g => g.time + (g.soIndividual ? '*' : '') + '|' + g.lider;
     const sel = F.tgLider && P.grupos.some(g => chave(g) === F.tgLider) ? F.tgLider : chave(P.grupos[0]);
     const g = P.grupos.find(x => chave(x) === sel);
     const mx = Math.max(1, ...g.ranking.map(r => r.pontos));
@@ -1597,6 +1597,7 @@
     const min = (P.minimo || 0).toLocaleString('pt-BR');
     const porTime = t => P.grupos.filter(x => x.time === t);
     const BR = P.brasil || [], nBr = (P.premiosBrasil || []).length;
+    const EQ = P.grupos.filter(x => !x.soIndividual), SI = P.grupos.filter(x => x.soIndividual);
     return `
       ${nBr ? `<div class="secao">Top ${nBr} Brasil · DIRETOS x SPOT</div>
       <div class="ajuda">Disputa única entre todos os promotores elegíveis (mínimo ${min} pts). Prêmio: ${P.premiosBrasil.map((v, k) => (k + 1) + 'º ' + reais(v)).join(' · ')}, somado ao prêmio que o promotor já recebe na equipe.</div>
@@ -1607,15 +1608,16 @@
       <div class="secao">Média por equipe · DIRETOS + SPOT</div>
       <div class="ajuda">Ranking único. Média = pontos dos promotores <b>elegíveis</b> (mínimo ${min} pts aprovados) ÷ número de elegíveis da equipe. Quem não atingiu o mínimo não entra na média. Prêmios: ${P.premiosEq.map((v, k) => (k + 1) + 'º ' + reais(v)).join(' · ')}.</div>
       <div class="bloco" style="margin-top:10px;overflow-x:auto"><table class="tabela-tg"><tr><th></th><th>Time</th><th>Equipe</th><th>Elegíveis</th><th>Pontos dos elegíveis</th><th>Média</th><th>Prêmio</th></tr>
-        ${P.grupos.map((e, k) => `<tr style="${e.premio ? '' : 'opacity:.75'}"><td style="font-size:16px">${e.media ? medalha(k) : '—'}</td><td>${tmTag(e.time)}</td><td><b>${esc(e.lider)}</b>${e.time !== 'SPOT' && e.supervisores.length ? `<br><small style="color:var(--sub)">sup. ${esc(e.supervisores.join(', '))}</small>` : ''}</td>
+        ${EQ.map((e, k) => `<tr style="${e.premio ? '' : 'opacity:.75'}"><td style="font-size:16px">${e.media ? medalha(k) : '—'}</td><td>${tmTag(e.time)}</td><td><b>${esc(e.lider)}</b>${e.time !== 'SPOT' && e.supervisores.length ? `<br><small style="color:var(--sub)">sup. ${esc(e.supervisores.join(', '))}</small>` : ''}</td>
           <td><b style="color:#fff">${e.elegiveis}</b> <small style="color:var(--sub)">de ${e.membros}</small></td><td>${e.soma.toLocaleString('pt-BR')}</td><td class="mono" style="color:#fff;font-weight:700">${e.media.toLocaleString('pt-BR')}</td>
           <td>${e.premio ? `<span class="tag t-feito">${reais(e.premio)}</span>` : '—'}${e.empate ? ' <span class="tag t-ultimo">empate</span>' : ''}</td></tr>`).join('')}</table></div>
+      ${SI.length ? `<div class="ajuda" style="margin-top:8px">Fora da média por equipe (supervisor sem líder, só prêmio individual): ${SI.map(x => `<b>${esc(x.lider)}</b> · ${pl(x.membros, 'promotor', 'promotores')}`).join(' · ')}.</div>` : ''}
       ${P.semLider ? `<div class="aviso">${pl(P.semLider, 'promotor está', 'promotores estão')} sem equipe definida (líder no DIRETOS ou supervisor na SPOT) e fora da premiação. Ajuste no app TRI GOLD › Equipe.</div>` : ''}
       <div class="secao">Ranking por equipe · top ${P.premiosInd.length}</div>
       <div class="ajuda">Só recebe prêmio quem tem no mínimo ${min} pts aprovados. Prêmios em cada equipe: ${P.premiosInd.map((v, k) => (k + 1) + 'º ' + reais(v)).join(' · ')}. Desempate: mais pontos extras aprovados, depois mais gôndolas.</div>
-      ${['DIRETOS', 'SPOT'].filter(t => porTime(t).length).map(t => `<div class="filtros" data-f="tgLider" style="margin-top:8px">${tmTag(t)}${porTime(t).map(e => `<button class="chip tmc-${t} ${chave(e) === sel ? 'on' : ''}" data-v="${esc(chave(e))}">${esc(e.lider)}</button>`).join('')}</div>`).join('')}
+      ${['DIRETOS', 'SPOT'].filter(t => porTime(t).length).map(t => `<div class="filtros" data-f="tgLider" style="margin-top:8px">${tmTag(t)}${porTime(t).map(e => `<button class="chip tmc-${t} ${chave(e) === sel ? 'on' : ''}" data-v="${esc(chave(e))}">${esc(e.lider)}${e.soIndividual ? ' · só individual' : ''}</button>`).join('')}</div>`).join('')}
       <div class="bloco" style="margin-top:10px">
-        <div class="c-meta" style="margin:6px 0 4px">${tmTag(g.time)}<span>${pl(g.membros, 'promotor', 'promotores')} · <b style="color:#fff">${g.elegiveis}</b> elegíve${g.elegiveis === 1 ? 'l' : 'is'}</span><span>média ${g.media.toLocaleString('pt-BR')} pts</span>${g.time !== 'SPOT' ? `<span>${esc(g.supervisores.join(', '))}</span>` : ''}</div>
+        <div class="c-meta" style="margin:6px 0 4px">${tmTag(g.time)}${g.soIndividual ? '<span class="tag t-ultimo">só prêmio individual · sem líder</span>' : ''}<span>${pl(g.membros, 'promotor', 'promotores')} · <b style="color:#fff">${g.elegiveis}</b> elegíve${g.elegiveis === 1 ? 'l' : 'is'}</span><span>média ${g.media.toLocaleString('pt-BR')} pts</span>${g.time !== 'SPOT' ? `<span>${esc(g.supervisores.join(', '))}</span>` : ''}</div>
         ${lista.map(r => `<div class="vt ${r.premio ? 'top' : ''} ${r.elegivel ? '' : 'inel'}"><div class="vt-cab"><span class="vt-pos">${r.posicao}º</span>
           <b>${esc(r.colab)} <small style="color:var(--sub);font-weight:500">· ${esc(r.uf)}</small>${r.premio ? ` <span class="tag t-feito">${reais(r.premio)}</span>` : ''}${r.empate ? ' <span class="tag t-ultimo">empate</span>' : ''}${r.elegivel ? '' : ` <span class="tag t-parado">faltam ${r.falta.toLocaleString('pt-BR')} pts</span>`}</b>
           <span class="vt-n">${r.pontos.toLocaleString('pt-BR')}<small> pts</small></span></div>
