@@ -231,6 +231,29 @@
   .thumbs{display:flex;gap:6px;overflow-x:auto;padding:8px 0 0}
   .thumbs img{width:62px;height:62px;object-fit:cover;border-radius:8px;border:2px solid transparent;cursor:pointer;opacity:.6;flex-shrink:0;background:#05070a}
   .thumbs img.on{border-color:var(--ouro);opacity:1}
+  /* Ponto extra (dourado) x ponto natural (ciano) */
+  .pt-seg{display:flex;gap:6px;margin-bottom:8px}
+  .pt-seg button{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border-radius:10px;border:1px solid var(--borda);background:var(--card);color:var(--sub);font:inherit;font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
+  .pt-seg button i{font-style:normal;font-family:var(--mono);font-size:11px;padding:1px 7px;border-radius:20px;background:rgba(255,255,255,.08)}
+  .pt-seg button.ex.on{color:#1a1300;background:var(--ouro);border-color:var(--ouro)}
+  .pt-seg button.na.on{color:#00262d;background:var(--teal);border-color:var(--teal)}
+  .pt-seg button:disabled{opacity:.45;cursor:not-allowed}
+  .pt-seg button.na.falta{border-color:rgba(255,59,92,.6);color:#ffb3c0}
+  .foto-box.ex{border:2px solid var(--ouro)} .foto-box.na{border:2px solid var(--teal)}
+  .pt-rot{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;padding:6px 12px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.5);white-space:nowrap}
+  .pt-rot.ex{background:var(--ouro);color:#1a1300} .pt-rot.na{background:var(--teal);color:#00262d}
+  .thumbs img.na-th{opacity:.6} .thumbs img.na-th.on{border-color:var(--teal);opacity:1}
+  .thumbs .sep{flex-shrink:0;width:2px;background:var(--borda);margin:4px 2px;border-radius:2px}
+  .confere{margin-top:12px;border-radius:14px;padding:12px 14px;border:1px solid var(--borda);background:var(--card)}
+  .confere b{display:block;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--sub);margin-bottom:8px}
+  .confere div{display:flex;gap:9px;align-items:flex-start;font-size:13px;line-height:1.45;margin-top:6px}
+  .confere i{font-style:normal;flex-shrink:0;font-size:10px;font-weight:900;letter-spacing:.8px;padding:3px 7px;border-radius:6px;margin-top:1px}
+  .confere .ex i{background:var(--ouro);color:#1a1300} .confere .na i{background:var(--teal);color:#00262d}
+  .confere .falta{color:#ffb3c0} .confere .falta i{background:var(--vermelho);color:#fff}
+  .confere .antes{color:var(--sub)} .confere .antes i{background:#3a4152;color:#cfd5e2}
+  .grupo-fotos{margin-top:12px} .grupo-fotos > small{display:inline-block;font-size:10.5px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;padding:3px 8px;border-radius:6px}
+  .grupo-fotos.ex > small{background:var(--ouro);color:#1a1300} .grupo-fotos.na > small{background:var(--teal);color:#00262d}
+  .t-natfalta{--c:var(--vermelho)} .t-natok{--c:var(--teal)}
   .senha-semana{border-radius:14px;padding:14px 16px;border:1px solid rgba(245,197,66,.45);background:linear-gradient(135deg,rgba(245,197,66,.14),rgba(245,197,66,.03));box-shadow:0 0 30px rgba(245,197,66,.12)}
   .senha-semana span{display:block;font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#e9d9a6}
   .senha-semana b{display:block;font-family:var(--mono);font-size:30px;letter-spacing:4px;color:var(--ouro);text-shadow:0 0 18px rgba(245,197,66,.55);margin-top:4px;word-break:break-all}
@@ -246,7 +269,7 @@
   .decidir{position:sticky;bottom:0;z-index:15;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 0 calc(12px + env(safe-area-inset-bottom));margin-top:12px;background:linear-gradient(180deg,transparent,var(--bg) 30%)}
   .decidir .btn{padding:16px;font-size:16px;border-radius:12px}
   .btn.rep{background:linear-gradient(135deg,#ff3b5c,#b3122b);box-shadow:0 6px 20px rgba(255,59,92,.3)}
-  .atalhos{font-family:var(--mono);font-size:10.5px;color:var(--sub);text-align:center;margin-top:-4px}
+  .atalhos{font-family:var(--mono);font-size:10.5px;line-height:1.9;color:var(--sub);text-align:center;margin-top:12px}
   .atalhos kbd{border:1px solid var(--borda);border-radius:4px;padding:1px 5px;color:var(--texto)}
   .pular{background:transparent;border:0;color:var(--sub);font-family:var(--mono);font-size:11px;cursor:pointer;text-decoration:underline}
   .fim{text-align:center;padding:50px 20px;border:1px dashed var(--borda);border-radius:14px;margin-top:16px;background:var(--card)}
@@ -403,7 +426,7 @@
       clearTimeout(tCarga);
       let r; try { r = JSON.parse(txt); } catch (e) { return erroCarga('Resposta inválida do servidor.'); }
       if (r.erro) return erroCarga(esc(r.erro));
-      D = r; iniciar(); if (msg) toast(msg, 'ok');
+      D = r; iniciar(); if (msg) toast(msg, 'ok', msg.length > 40 ? 8000 : 3000);
     }).withFailureHandler(e => erroCarga(esc(e && e.message ? e.message : String(e)))).carregarJSON(CRED.email, CRED.senha);
   }
   function chamar(fn, args, ok, btn, falhou){
@@ -440,6 +463,16 @@
     if (!sem) window.scrollTo(0, 0);
   }
 
+  /* ---------- Fotos: ponto extra + ponto natural ---------- */
+  function fotosDe(i){ return i.fotos.map(u => ({ u: u, g: 'ex' })).concat((i.fotosN || []).map(u => ({ u: u, g: 'na' }))); }
+  function nomesProd(i){ const cat = (i.cats || '').toLowerCase().split(/\s*,\s*/);
+    return i.prods.map(p => D.produtos[p] || (/^[0-9a-f]{8}-[0-9a-f-]{20,}$/i.test(p) || cat.indexOf(p.toLowerCase()) >= 0 ? '' : p)).filter(Boolean); }
+  function txtNatural(i){
+    if (i.nat === 'ok') return ['na', 'Ponto natural: confira a foto (aba ciano), também com a senha da semana.'];
+    if (i.nat === 'falta') return ['falta', 'Ponto natural: o promotor não enviou a foto (obrigatória desde ' + brA(D.inicioNatural) + ').'];
+    return ['antes', 'Ponto natural: não se aplica. Envio anterior à pergunta (' + brA(D.inicioNatural || i.data) + '); valide só o ponto extra.'];
+  }
+
   /* ---------- Fila de validação ---------- */
   function montarFila(){
     const alvo = ETAPA === 'bko' ? 'pend_bko' : 'pend_sup';
@@ -465,16 +498,21 @@
         ${semSup ? `<p style="margin-top:10px;color:var(--amarelo)">${pl(semSup, 'envio está', 'envios estão')} sem supervisor definido. Ajuste na aba Equipe.</p>` : ''}</div>`;
       $('v-validar').innerHTML = html; return;
     }
-    const i = FILA[POS]; FOTO = Math.min(FOTO, Math.max(0, i.fotos.length - 1));
+    const i = FILA[POS], FT = fotosDe(i); FOTO = Math.min(FOTO, Math.max(0, FT.length - 1));
     const senha = D.senhas[i.semana];
-    const prods = i.prods.map(p => D.produtos[p]).filter(Boolean);
+    const prods = nomesProd(i);
+    const at = FT[FOTO], nE = i.fotos.length, nN = (i.fotosN || []).length;
+    const pos = at ? (at.g === 'ex' ? FOTO + 1 : FOTO - nE + 1) : 0, tot = at ? (at.g === 'ex' ? nE : nN) : 0;
+    const nat = txtNatural(i);
     html += `<div class="val">
       <div>
-        <div class="foto-box">${i.fotos.length ? `<img class="principal" id="fotoP" src="${esc(i.fotos[FOTO])}" alt="Foto do ponto extra" referrerpolicy="no-referrer">
-          <span class="nfoto">Foto ${FOTO + 1} de ${i.fotos.length}</span><a class="abrir" href="${esc(i.fotos[FOTO])}" target="_blank" rel="noopener">Abrir ↗</a>
-          ${i.fotos.length > 1 ? '<button class="seta e" data-foto="-1">‹</button><button class="seta d" data-foto="1">›</button>' : ''}` : '<div class="sem">Envio sem foto</div>'}
+        <div class="pt-seg"><button class="ex ${at && at.g === 'ex' ? 'on' : ''}" data-grupo="ex" ${nE ? '' : 'disabled'}>Ponto extra <i>${nE}</i></button>
+          <button class="na ${at && at.g === 'na' ? 'on' : ''} ${i.nat === 'falta' ? 'falta' : ''}" data-grupo="na" ${nN ? '' : 'disabled'}>Ponto natural <i>${nN || (i.nat === 'falta' ? 'falta' : '—')}</i></button></div>
+        <div class="foto-box ${at ? at.g : ''}">${at ? `<img class="principal" id="fotoP" src="${esc(at.u)}" alt="Foto do ${at.g === 'ex' ? 'ponto extra' : 'ponto natural'}" referrerpolicy="no-referrer">
+          <span class="pt-rot ${at.g}">${at.g === 'ex' ? 'Ponto extra' : 'Ponto natural'} · ${pos} de ${tot}</span><a class="abrir" href="${esc(at.u)}" target="_blank" rel="noopener">Abrir ↗</a>
+          ${FT.length > 1 ? '<button class="seta e" data-foto="-1">‹</button><button class="seta d" data-foto="1">›</button>' : ''}` : '<div class="sem">Envio sem foto</div>'}
           <span class="senha-chip ${senha ? '' : 'falta'}"><small>SENHA DA SEMANA</small>${senha ? esc(senha) : 'NÃO CADASTRADA'}</span></div>
-        ${i.fotos.length > 1 ? `<div class="thumbs">${i.fotos.map((f, k) => `<img src="${esc(f)}" data-thumb="${k}" class="${k === FOTO ? 'on' : ''}" loading="lazy" referrerpolicy="no-referrer" alt="">`).join('')}</div>` : ''}
+        ${FT.length > 1 ? `<div class="thumbs">${FT.map((f, k) => (k === nE && k > 0 ? '<span class="sep"></span>' : '') + `<img src="${esc(f.u)}" data-thumb="${k}" class="${f.g === 'na' ? 'na-th' : ''} ${k === FOTO ? 'on' : ''}" title="${f.g === 'ex' ? 'Ponto extra' : 'Ponto natural'}" loading="lazy" referrerpolicy="no-referrer" alt="">`).join('')}</div>` : ''}
       </div>
       <div>
         <div class="senha-semana ${senha ? '' : 'falta'}"><span>Senha da semana · ${semanaTxt(i.semana)}</span><b>${senha ? esc(senha) : 'Senha desta semana não cadastrada'}</b></div>
@@ -488,12 +526,15 @@
           <div class="linha"><span>Produtos</span><div>${prods.length ? prods.map(esc).join(', ') : pl(i.prods.length, 'produto foco marcado', 'produtos foco marcados')}</div></div>
           ${ETAPA === 'bko' ? `<div class="linha"><span>Supervisor</span><div style="color:var(--verde)">Aprovado por ${esc(i.sn)} em ${brA(i.sd.slice(0, 10))}</div></div>` : ''}
         </div>
+        <div class="confere"><b>O que conferir</b>
+          <div class="ex"><i>EXTRA</i><span>Ponto extra montado, com os produtos foco e a senha da semana visível.</span></div>
+          <div class="${nat[0]}"><i>NATURAL</i><span>${esc(nat[1])}</span></div></div>
         <div class="decidir"><button class="btn rep" data-dec="Reprovada">✕ Reprovar</button><button class="btn verde" data-dec="Aprovada">✓ Aprovar</button></div>
-        <div class="atalhos">Teclado: <kbd>A</kbd> aprovar · <kbd>R</kbd> reprovar · <kbd>←</kbd> <kbd>→</kbd> fotos · <button class="pular" data-pular="1">pular esta</button></div>
+        <div class="atalhos">Teclado: <kbd>A</kbd> aprovar · <kbd>R</kbd> reprovar · <kbd>←</kbd> <kbd>→</kbd> fotos · <kbd>E</kbd> extra · <kbd>N</kbd> natural · <button class="pular" data-pular="1">pular esta</button></div>
       </div>
     </div>`;
     $('v-validar').innerHTML = html;
-    const prox = FILA[POS + 1]; if (prox && prox.fotos[0]) { const im = new Image(); im.referrerPolicy = 'no-referrer'; im.src = prox.fotos[0]; }
+    const prox = FILA[POS + 1]; if (prox && prox.fotos[0]) { (prox.fotosN || []).slice(0, 1).forEach(u => { const m = new Image(); m.referrerPolicy = 'no-referrer'; m.src = u; }); const im = new Image(); im.referrerPolicy = 'no-referrer'; im.src = prox.fotos[0]; }
   }
   function decidir(dec){
     const i = FILA[POS]; if (!i) return;
@@ -539,7 +580,7 @@
     const mostra = l.slice(0, 200);
     html += mostra.map(i => { const e = EST[i.estado] || [i.estado, 'pend'];
       return `<div class="card f-${e[1]}" data-item="${esc(i.id)}"><div class="lista-item">${i.fotos[0] ? `<img class="mini-foto" src="${esc(i.fotos[0])}" loading="lazy" referrerpolicy="no-referrer" alt="">` : '<div class="mini-foto"></div>'}
-        <div class="tx"><div class="c-meta" style="margin-top:0"><span class="tag t-${e[1]}">${e[0]}</span><span class="tag t-tipo">${esc(TIPO[i.tipo] || i.tipo)} · ${i.pontos}</span><span class="id">${brA(i.data)}</span></div>
+        <div class="tx"><div class="c-meta" style="margin-top:0"><span class="tag t-${e[1]}">${e[0]}</span><span class="tag t-tipo">${esc(TIPO[i.tipo] || i.tipo)} · ${i.pontos}</span><span class="id">${brA(i.data)}</span>${i.nat === 'falta' ? '<span class="tag t-natfalta">sem ponto natural</span>' : i.nat === 'ok' ? '<span class="tag t-natok">+ natural</span>' : ''}</div>
         <div class="c-tit">${esc(i.colab)}</div><div class="c-meta"><span>${esc(i.pdv)}</span><span>${esc(i.uf)}</span>${i.supervisor ? `<span>sup. ${esc(i.supervisor)}</span>` : '<span style="color:var(--amarelo)">sem supervisor</span>'}</div></div></div></div>`; }).join('') ||
       '<div class="vazio">Nenhum envio neste filtro.</div>';
     if (l.length > 200) html += `<div class="ajuda" style="text-align:center;margin-top:10px">Mostrando 200 de ${l.length}. Use a busca ou o filtro de semana.</div>`;
@@ -551,7 +592,9 @@
     const podeDesfazerSup = (p === 'ADMIN' || (p === 'SUPERVISOR' && i.sn === D.usuario.nome)) && i.ss && !i.bs;
     const podeDesfazerBko = (p === 'ADMIN' || (p === 'BKO' && i.bn === D.usuario.nome)) && i.bs;
     abrirFolha(`<span class="id">${esc(i.id)}</span>`, `
-      <div class="thumbs" style="padding-top:12px">${i.fotos.map((f, k) => `<img src="${esc(f)}" data-zoom="${esc(f)}" class="on" style="width:110px;height:110px" referrerpolicy="no-referrer" alt="Foto ${k + 1}">`).join('') || '<div class="vazio">Sem foto</div>'}</div>
+      ${[['ex', 'Ponto extra', i.fotos], ['na', 'Ponto natural', i.fotosN || []]].map(([g, t, l]) => `<div class="grupo-fotos ${g}"><small>${t} · ${l.length}</small>
+        <div class="thumbs">${l.map((f, k) => `<img src="${esc(f)}" data-zoom="${esc(f)}" class="on ${g === 'na' ? 'na-th' : ''}" style="width:110px;height:110px" referrerpolicy="no-referrer" alt="${t} ${k + 1}">`).join('') ||
+        `<div class="ajuda" style="padding:6px 0">${g === 'ex' ? 'Sem foto' : esc(txtNatural(i)[1])}</div>`}</div></div>`).join('')}
       <div class="senha-semana ${senha ? '' : 'falta'}" style="margin-top:12px"><span>Senha da semana · ${semanaTxt(i.semana)}</span><b>${senha ? esc(senha) : 'Não cadastrada'}</b></div>
       <div class="info"><div class="c-meta" style="margin:0 0 6px"><span class="tag t-${e[1]}">${e[0]}</span><span class="tag t-tipo">${esc(TIPO[i.tipo] || i.tipo)} · ${i.pontos} pts</span></div>
         <h2>${esc(i.colab)}</h2>
@@ -629,7 +672,8 @@
       const sem = [...new Set(IMPORT.map(l => l.data))].sort();
       const nao = IMPORT.filter(l => /^n/i.test(l.montou)).length;
       $('imPrev').innerHTML = `<div class="kpis"><div class="kpi k-navy"><span>Linhas no arquivo</span><b>${IMPORT.length}</b><small>${nao} "não montou" serão ignoradas</small></div>
-        <div class="kpi k-teal"><span>Período</span><b style="font-size:20px">${brA(sem[0])} a ${brA(sem[sem.length - 1])}</b><small>${new Set(IMPORT.map(l => l.colab)).size} promotores</small></div></div>
+        <div class="kpi k-teal"><span>Período</span><b style="font-size:20px">${brA(sem[0])} a ${brA(sem[sem.length - 1])}</b><small>${new Set(IMPORT.map(l => l.colab)).size} promotores</small></div>
+        <div class="kpi k-teal"><span>Com foto do ponto natural</span><b>${IMPORT.filter(l => /https?:/.test(l.fotosN)).length}</b><small>${IMPORT.some(l => 'fotosN' in l) ? 'as já importadas só recebem a foto, sem perder a validação' : ''}</small></div></div>
         <div class="acoes" style="grid-template-columns:1fr"><button class="btn verde" id="imOk">Importar ${IMPORT.length} linhas</button></div>`;
       $('imOk').onclick = enviarImport;
     } catch (e) { $('imPrev').innerHTML = `<div class="aviso">${esc(e.message)}</div>`; }
@@ -641,8 +685,9 @@
     const um = f => low.findIndex(f), todos = f => low.map((h, i) => f(h) ? i : -1).filter(i => i >= 0);
     const I = { data: um(h => h.startsWith('data da visita')), pdv: um(h => h === 'pdv'), cod: um(h => h.includes('código pdv') || h.includes('codigo pdv')), rede: um(h => h === 'rede'),
       canal: um(h => h === 'canal'), uf: um(h => h === 'uf'), colab: um(h => h === 'colaborador'), montou: um(h => h.includes('montou')),
-      tipo: um(h => h.includes('tipo de exposi')), foto: um(h => h.includes('foto')) };
-    const cats = todos(h => h.includes('categoria do ponto')), prods = todos(h => h.includes('produtos foco'));
+      tipo: um(h => h.includes('tipo de exposi')), foto: um(h => h.includes('foto') && h.includes('extra')), fotoN: um(h => h.includes('foto') && h.includes('natural')) };
+    if (I.foto < 0) I.foto = um(h => h.includes('foto') && !h.includes('natural'));
+    const cats = todos(h => h.includes('categoria do ponto')), prods = todos(h => h.includes('produtos foco') && !h.includes('categoria do ponto'));
     ['data', 'colab', 'tipo', 'foto'].forEach(k => { if (I[k] < 0) throw new Error('Coluna não encontrada: ' + k); });
     const v = (r, i) => i >= 0 ? String(r[i] == null ? '' : r[i]).trim() : '';
     return rows.slice(ini + 1).filter(r => v(r, I.colab)).map(r => {
@@ -651,16 +696,16 @@
       const cs = [...new Set(cats.map(i => v(r, i)).filter(x => x && x !== '-'))];
       const ps = []; prods.forEach(i => v(r, i).split(',').map(x => x.trim()).forEach(x => { if (x && x !== '-' && ps.indexOf(x) < 0) ps.push(x); }));
       return { data, pdv: v(r, I.pdv), cod: v(r, I.cod), rede: v(r, I.rede), canal: v(r, I.canal), uf: v(r, I.uf), colab: v(r, I.colab), montou: v(r, I.montou),
-               tipo: v(r, I.tipo), cats: cs.join(', '), prods: ps.join(', '), fotos: v(r, I.foto) };
+               tipo: v(r, I.tipo), cats: cs.join(', '), prods: ps.join(', '), fotos: v(r, I.foto), fotosN: v(r, I.fotoN) };
     });
   }
   function enviarImport(){
-    const btn = $('imOk'), LOTE = 300, tot = { novas: 0, repetidas: 0, ignoradas: 0, novosColab: 0 };
+    const btn = $('imOk'), LOTE = 300, tot = { novas: 0, repetidas: 0, ignoradas: 0, novosColab: 0, natural: 0 };
     let k = 0;
     const passo = () => {
       if (k >= IMPORT.length) {
-        $('imPrev').innerHTML = `<div class="aviso" style="border-color:rgba(34,211,122,.4);background:rgba(34,211,122,.07);color:#bff3d6">Importação concluída: <b>${tot.novas}</b> envios novos, ${tot.repetidas} já existiam, ${tot.ignoradas} ignorados ("não montou" ou sem data)${tot.novosColab ? `, <b>${tot.novosColab}</b> promotores novos na Equipe` : ''}.</div>`;
-        return carregar('Importação concluída.');
+        $('imPrev').innerHTML = `<div class="aviso" style="border-color:rgba(34,211,122,.4);background:rgba(34,211,122,.07);color:#bff3d6">Importação concluída: <b>${tot.novas}</b> envios novos, ${tot.repetidas} já existiam (validação mantida${tot.natural ? `; <b>${tot.natural}</b> receberam a foto do ponto natural` : ''}), ${tot.ignoradas} ignorados ("não montou" ou sem data)${tot.novosColab ? `, <b>${tot.novosColab}</b> promotores novos na Equipe` : ''}.</div>`;
+        return carregar(`Importação concluída: ${tot.novas} novos · ${tot.repetidas} já existiam${tot.natural ? ` (${tot.natural} receberam a foto do ponto natural)` : ''}.`);
       }
       btn.disabled = true; btn.innerHTML = `<span class="spin"></span>Enviando ${Math.min(k + LOTE, IMPORT.length)} de ${IMPORT.length}`;
       google.script.run.withSuccessHandler(r => { Object.keys(tot).forEach(x => tot[x] += r[x] || 0); k += LOTE; passo(); })
@@ -735,7 +780,8 @@
     if (t.id === 'desfazer') { e.preventDefault(); return desfazer(); }
     if (t.closest('[data-acao="fechar"]')) return fecharFolha();
     const dec = t.closest('[data-dec]'); if (dec) return decidir(dec.dataset.dec);
-    const fo = t.closest('[data-foto]'); if (fo) { const i = FILA[POS]; FOTO = (FOTO + Number(fo.dataset.foto) + i.fotos.length) % i.fotos.length; return renderValidar(); }
+    const fo = t.closest('[data-foto]'); if (fo) { const n = fotosDe(FILA[POS]).length; FOTO = (FOTO + Number(fo.dataset.foto) + n) % n; return renderValidar(); }
+    const gr = t.closest('[data-grupo]'); if (gr) { FOTO = gr.dataset.grupo === 'na' ? FILA[POS].fotos.length : 0; return renderValidar(); }
     const th = t.closest('[data-thumb]'); if (th) { FOTO = Number(th.dataset.thumb); return renderValidar(); }
     if (t.id === 'fotoP') { $('zoomImg').src = t.src; return $('zoom').classList.remove('hidden'); }
     const zo = t.closest('[data-zoom]'); if (zo) { $('zoomImg').src = zo.dataset.zoom; return $('zoom').classList.remove('hidden'); }
@@ -778,8 +824,11 @@
     const i = FILA[POS]; if (!i) return;
     if (e.key === 'a' || e.key === 'A') decidir('Aprovada');
     else if (e.key === 'r' || e.key === 'R') decidir('Reprovada');
-    else if (e.key === 'ArrowRight' && i.fotos.length > 1) { FOTO = (FOTO + 1) % i.fotos.length; renderValidar(); }
-    else if (e.key === 'ArrowLeft' && i.fotos.length > 1) { FOTO = (FOTO - 1 + i.fotos.length) % i.fotos.length; renderValidar(); }
+    const n = fotosDe(i).length;
+    if (e.key === 'ArrowRight' && n > 1) { FOTO = (FOTO + 1) % n; renderValidar(); }
+    else if (e.key === 'ArrowLeft' && n > 1) { FOTO = (FOTO - 1 + n) % n; renderValidar(); }
+    else if ((e.key === 'e' || e.key === 'E') && i.fotos.length) { FOTO = 0; renderValidar(); }
+    else if ((e.key === 'n' || e.key === 'N') && (i.fotosN || []).length) { FOTO = i.fotos.length; renderValidar(); }
   });
 
   (function(){ const s = lsGet(K_LOGIN) || lsGet(K_SSO); if (s && s.email && s.senha) { CRED = s; $('lgEmail').value = s.email; carregar(); } else mostrar('login'); })();
