@@ -774,7 +774,7 @@
     const um = f => low.findIndex(f), todos = f => low.map((h, i) => f(h) ? i : -1).filter(i => i >= 0);
     const I = { data: um(h => h.startsWith('data da visita')), pdv: um(h => h === 'pdv'), cod: um(h => h.includes('código pdv') || h.includes('codigo pdv')), rede: um(h => h === 'rede'),
       canal: um(h => h === 'canal'), uf: um(h => h === 'uf'), colab: um(h => h === 'colaborador'), montou: um(h => h.includes('montou')),
-      tipo: um(h => h.includes('tipo de exposi')), foto: um(h => h.includes('foto') && h.includes('extra')), fotoN: um(h => h.includes('foto') && h.includes('natural')), status: um(h => h === 'status' || h.startsWith('status ')) };
+      tipo: um(h => h.includes('tipo de exposi')), foto: um(h => h.includes('foto') && h.includes('extra')), fotoN: um(h => h.includes('foto') && h.includes('natural')), status: um(h => h === 'status' || h.startsWith('status ')), supervisor: um(h => h === 'supervisor') };
     if (I.foto < 0) I.foto = um(h => h.includes('foto') && !h.includes('natural'));
     const cats = todos(h => h.includes('categoria do ponto')), prods = todos(h => h.includes('produtos foco') && !h.includes('categoria do ponto'));
     ['data', 'colab', 'tipo', 'foto'].forEach(k => { if (I[k] < 0) throw new Error('Coluna não encontrada: ' + k); });
@@ -785,16 +785,16 @@
       const cs = [...new Set(cats.map(i => v(r, i)).filter(x => x && x !== '-'))];
       const ps = []; prods.forEach(i => v(r, i).split(',').map(x => x.trim()).forEach(x => { if (x && x !== '-' && ps.indexOf(x) < 0) ps.push(x); }));
       return { data, pdv: v(r, I.pdv), cod: v(r, I.cod), rede: v(r, I.rede), canal: v(r, I.canal), uf: v(r, I.uf), colab: v(r, I.colab), montou: v(r, I.montou),
-               tipo: v(r, I.tipo), cats: cs.join(', '), prods: ps.join(', '), fotos: v(r, I.foto), fotosN: v(r, I.fotoN), status: v(r, I.status) };
+               tipo: v(r, I.tipo), cats: cs.join(', '), prods: ps.join(', '), fotos: v(r, I.foto), fotosN: v(r, I.fotoN), status: v(r, I.status), supervisor: v(r, I.supervisor) };
     });
   }
   function enviarImport(){
-    const btn = $('imOk'), LOTE = 300, tot = { novas: 0, repetidas: 0, ignoradas: 0, novosColab: 0, natural: 0, prevalidadas: 0 };
+    const btn = $('imOk'), LOTE = 300, tot = { novas: 0, repetidas: 0, ignoradas: 0, novosColab: 0, natural: 0, prevalidadas: 0, supervisores: 0 };
     let k = 0;
     const passo = () => {
       if (k >= IMPORT.length) {
         $('imPrev').innerHTML = `<div class="aviso" style="border-color:rgba(34,211,122,.4);background:rgba(34,211,122,.07);color:#bff3d6">Importação concluída: <b>${tot.novas}</b> envios novos, ${tot.repetidas} já existiam (validação mantida${tot.natural ? `; <b>${tot.natural}</b> receberam a foto do ponto natural` : ''}), ${tot.ignoradas} ignorados ("não montou" ou sem data)${tot.novosColab ? `, <b>${tot.novosColab}</b> promotores novos na Equipe` : ''}.</div>`;
-        return carregar(`Importação concluída: ${tot.novas} novos · ${tot.repetidas} já existiam${tot.natural ? ` (${tot.natural} receberam a foto do ponto natural)` : ''}${tot.prevalidadas ? ` · ${tot.prevalidadas} já validados pela agência` : ''}.`);
+        return carregar(`Importação concluída: ${tot.novas} novos · ${tot.repetidas} já existiam${tot.natural ? ` (${tot.natural} receberam a foto do ponto natural)` : ''}${tot.prevalidadas ? ` · ${tot.prevalidadas} já validados pela agência` : ''}${tot.supervisores ? ` · ${tot.supervisores} promotores com supervisor definido` : ''}.`);
       }
       btn.disabled = true; btn.innerHTML = `<span class="spin"></span>Enviando ${Math.min(k + LOTE, IMPORT.length)} de ${IMPORT.length}`;
       google.script.run.withSuccessHandler(r => { Object.keys(tot).forEach(x => tot[x] += r[x] || 0); k += LOTE; passo(); })
