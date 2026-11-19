@@ -442,7 +442,12 @@
         if (!/^https:\/\/script\.google\.com\/.+\/exec/.test(API_URL)) return setTimeout(() => falha(new Error('Falta colar o link /exec do Apps Script no config.js.')), 0);
         fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn: fn, args: args }), redirect: 'follow' })
           .then(r => r.json())
-          .then(j => j && j.ok ? ok(j.r) : falha(new Error(j && j.erro ? j.erro : 'Resposta inválida do servidor.')))
+          .then(j => {
+            if (!(j && j.ok)) return falha(new Error(j && j.erro ? j.erro : 'Resposta inválida do servidor.'));
+            try { ok(j.r); }   // erro ao montar a tela não é problema de conexão: mostra onde foi
+            catch (e) { console.error(e); const onde = (String(e.stack || '').split('\n')[1] || '').trim().replace(/\(?https?:\/\/[^)]*\/([^/)]*)\)?/, '$1');
+                        const msg = 'Erro ao montar a tela: ' + e.message + (onde ? ' · ' + onde : ''); toast(typeof esc === 'function' ? esc(msg) : msg, 'erro', 12000); }
+          })
           .catch(e => falha(new Error('Não consegui falar com o servidor. Confira o link /exec e se a implantação está com acesso "Qualquer pessoa". (' + e.message + ')')));
       };
     } });
@@ -532,7 +537,9 @@
     $('abas').innerHTML = abasDo().map(([k, t]) => `<button class="aba ${k === aba ? 'on' : ''}" data-aba="${k}">${t}${n[k] ? `<b class="${k !== 'validar' ? 'alerta' : ''}">${n[k]}</b>` : ''}</button>`).join('');
   }
   const faltaEq = e => !e.supervisor;   // DIRETOS sem líder é permitido: vira equipe do supervisor, só prêmio individual
-  function renderTudo(){ renderValidar(); renderEnvios(); if (perfil() === 'ADMIN') { renderSenhas(); renderEquipe(); renderImportar(); renderAcessos(); } }
+  // cada parte é montada separada: se uma der erro, as outras continuam funcionando e o erro aparece no lugar dela
+  function seguro(nome, f){ try { f(); } catch (e) { console.error(nome, e); const v = $('v-' + nome); if (v) v.innerHTML = `<div class="aviso">Não consegui montar esta tela (${esc(e.message)}). Mande um print para o BI.</div>`; } }
+  function renderTudo(){ seguro('validar', renderValidar); seguro('envios', renderEnvios); if (perfil() === 'ADMIN') { seguro('senhas', renderSenhas); seguro('equipe', renderEquipe); seguro('importar', renderImportar); seguro('acessos', renderAcessos); } }
   function irAba(k, sem){
     aba = k; document.querySelectorAll('.aba').forEach(b => b.classList.toggle('on', b.dataset.aba === k));
     ['validar', 'envios', 'senhas', 'equipe', 'importar', 'acessos'].forEach(x => $('v-' + x).classList.toggle('hidden', x !== k));
