@@ -560,8 +560,36 @@
   }
   let SYNC = null;
   const hh = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-  function relogio(){ if (!SYNC) return; const m = Math.round((Date.now() - SYNC) / 60000); $('syncTxt').textContent = 'online · atualizado ' + hh(SYNC) + (m >= 1 ? ' (há ' + m + ' min)' : ''); }
-  setInterval(relogio, 30000);
+  function relogio(){ if (!SYNC) return; const m = Math.round((Date.now() - SYNC) / 60000);
+    $('syncTxt').textContent = 'ao vivo · atualizado ' + hh(SYNC) + ':' + String(SYNC.getSeconds()).padStart(2, '0') + (m >= 2 ? ' (há ' + m + ' min)' : ''); }
+  setInterval(relogio, 15000);
+
+  /* ---------- Atualização automática: busca dados novos a cada AUTO_SEG segundos, sem recarregar a página ---------- */
+  const AUTO_SEG = 30;
+  let AUTO_BUSCANDO = false;
+  // não atualiza enquanto a pessoa está mexendo: janela aberta, digitando, abertura na tela ou aba do navegador em segundo plano
+  function ocupado(){
+    const a = document.activeElement, tag = a ? a.tagName : '';
+    return !D || !CRED || document.hidden || INTRO.ativo || $('folha').classList.contains('on') || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+  }
+  function atualizarAoVivo(){
+    if (AUTO_BUSCANDO || ocupado()) return;
+    AUTO_BUSCANDO = true;
+    google.script.run
+      .withSuccessHandler(txt => {
+        AUTO_BUSCANDO = false;
+        let r; try { r = JSON.parse(txt); } catch (e) { return; }
+        if (r.erro || ocupado()) return;
+        const y = window.scrollY;
+        D = r; renderAbas(); renderTudo(); irAba(aba, true); window.scrollTo(0, y);
+        SYNC = new Date(); relogio();
+      })
+      .withFailureHandler(() => { AUTO_BUSCANDO = false; })
+      .carregarJSON(CRED.email, CRED.senha);
+  }
+  setInterval(atualizarAoVivo, AUTO_SEG * 1000);
+  // voltou para a aba do navegador depois de um tempo: atualiza na hora
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && SYNC && Date.now() - SYNC > 10000) atualizarAoVivo(); });
   function renderAbas(){
     const n = {};
     if (D.demandas) {
@@ -1151,19 +1179,19 @@
   }
 
 
-  /* ---------- Animação de entrada (1x por dia por aparelho) ---------- */
+  /* ---------- Animação de entrada (sempre que a página abre) ---------- */
   const K_INTRO = 'centralbi.intro';
   const INTRO = { ativo: false, acabou: false, fila: null, t: [] };
   const diaLocal = () => { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
   function abrirIntro(){
-    if (lsGet(K_INTRO) === diaLocal()) return;
-    lsSet(K_INTRO, diaLocal());
+    if (INTRO.ativo || INTRO.feito) return;   // aparece toda vez que a página abre (uma vez por abertura)
+    INTRO.feito = true;
     Object.assign(INTRO, { ativo: true, acabou: false, fila: null });
     const el = $('intro'); el.classList.remove('hidden', 'sai');
     const msgs = ['conectando à base', 'lendo demandas e chamados', 'calculando indicadores', 'sincronizando a agenda', 'montando o painel'];
     let i = 0; $('introStatus').textContent = msgs[0] + '…';
     INTRO.t.push(setInterval(() => { i = (i + 1) % msgs.length; $('introStatus').textContent = msgs[i] + '…'; }, 650));
-    INTRO.t.push(setTimeout(() => { INTRO.acabou = true; if (INTRO.fila) fecharIntro(); }, 3000));
+    INTRO.t.push(setTimeout(() => { INTRO.acabou = true; if (INTRO.fila || !CRED) fecharIntro(); }, 3000));   // sem login: fecha e mostra a tela de entrada
   }
   function fecharIntro(){
     if (!INTRO.ativo) return;
@@ -1733,6 +1761,7 @@
   document.body.addEventListener('change', e => { const k = e.target.dataset && e.target.dataset.f; if (!k || k === 'dBusca') return; F[k] = e.target.value; ({ dStatus: renderDemandas, dTipo: renderDemandas, cForn: renderChamados, relRot: renderRelatorios, relMes: renderRelatorios, relPara: renderRelatorios })[k](); });
   $('introPular').onclick = () => { INTRO.acabou = true; fecharIntro(); };
 
+  abrirIntro();
   (function(){ const s = lsGet(K_LOGIN) || lsGet(K_SSO); if (s && s.email && s.senha) { CRED = s; $('lgEmail').value = s.email; carregar(); } else mostrar('login'); })();
 </script>
 </body>
