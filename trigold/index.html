@@ -254,6 +254,11 @@
   .grupo-fotos{margin-top:12px} .grupo-fotos > small{display:inline-block;font-size:10.5px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;padding:3px 8px;border-radius:6px}
   .grupo-fotos.ex > small{background:var(--ouro);color:#1a1300} .grupo-fotos.na > small{background:var(--teal);color:#00262d}
   .t-natfalta{--c:var(--vermelho)} .t-natok{--c:var(--teal)}
+  /* Times: DIRETOS (nosso time) x SPOT (agência) */
+  .tag.tm-DIRETOS,.tag.tm-SPOT{border:0;font-weight:900;letter-spacing:1px}
+  .tag.tm-DIRETOS{background:#2f6bff;color:#fff} .tag.tm-SPOT{background:#ff8a3d;color:#1f0e00}
+  .tm-sel{display:flex;gap:8px;margin-top:12px} .tm-sel button{flex:1;padding:12px;border-radius:12px;border:1px solid var(--borda);background:var(--card);color:var(--sub);font:inherit;font-weight:800;letter-spacing:1px;cursor:pointer}
+  .tm-sel button.on[data-imtime="DIRETOS"]{background:#2f6bff;border-color:#2f6bff;color:#fff} .tm-sel button.on[data-imtime="SPOT"]{background:#ff8a3d;border-color:#ff8a3d;color:#1f0e00}
   .senha-semana{border-radius:14px;padding:14px 16px;border:1px solid rgba(245,197,66,.45);background:linear-gradient(135deg,rgba(245,197,66,.14),rgba(245,197,66,.03));box-shadow:0 0 30px rgba(245,197,66,.12)}
   .senha-semana span{display:block;font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#e9d9a6}
   .senha-semana b{display:block;font-family:var(--mono);font-size:30px;letter-spacing:4px;color:var(--ouro);text-shadow:0 0 18px rgba(245,197,66,.55);margin-top:4px;word-break:break-all}
@@ -383,7 +388,8 @@
   document.querySelectorAll('img[data-logo]').forEach(i => { i.src = $('logoBase').src; });
   const K_LOGIN = 'trigold.login', K_SSO = 'merchan.sso';
   let CRED = null, D = null, aba = 'validar', ETAPA = 'sup', FILA = [], POS = 0, FOTO = 0, ULTIMA = null;
-  const F = { semana: '', colab: '', estado: 'todas', busca: '', eqFiltro: 'sem' };
+  const F = { semana: '', colab: '', estado: 'todas', busca: '', eqFiltro: 'sem', time: '' };
+  let IMTIME = 'DIRETOS';
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   let tT; function toast(t, tipo, ms){ const e = $('toast'); e.innerHTML = t; e.className = 'toast on ' + (tipo || ''); clearTimeout(tT); tT = setTimeout(() => e.className = 'toast', ms || 3000); }
   function lsGet(k){ try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
@@ -396,10 +402,12 @@
   const brA = s => s ? br(s) + '/' + s.slice(2, 4) : '';
   const SEM = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
   const TIPO = { GONDOLA: 'Ponta de gôndola', GELADEIRA: 'Porta de geladeira', ILHA: 'Ilha' };
-  const EST = { pend_sup: ['Aguarda supervisor', 'pend'], pend_bko: ['Aguarda BKO', 'pendb'], aprovada: ['Aprovada', 'apr'], rep_sup: ['Reprovada (supervisor)', 'rep'],
+  const EST = { pend_sup: ['Aguarda 1ª validação', 'pend'], pend_bko: ['Aguarda BKO', 'pendb'], aprovada: ['Aprovada', 'apr'], rep_sup: ['Reprovada (1ª validação)', 'rep'],
                 rep_bko: ['Reprovada (BKO)', 'rep'], duplicada: ['Duplicada', 'dup'] };
   const pl = (n, a, b) => n + ' ' + (n === 1 ? a : b);
   const perfil = () => D.usuario.perfil;
+  const tmTag = t => `<span class="tag tm-${t === 'SPOT' ? 'SPOT' : 'DIRETOS'}">${t === 'SPOT' ? 'SPOT' : 'DIRETOS'}</span>`;
+  const valid1 = i => i.time === 'SPOT' ? 'Agência SPOT' : 'Supervisor';
   const semanaTxt = s => `${br(s)} a ${br(addD(s, 6))}`;
 
   /* ---------- Login e carga ---------- */
@@ -444,18 +452,19 @@
     return [['validar', 'Validar'], ['envios', 'Histórico']];
   }
   function iniciar(){
-    const per = { ADMIN: 'Administrador', SUPERVISOR: 'Supervisor', BKO: 'BKO · double check', GESTOR: 'Gestor' }[perfil()];
+    const per = { ADMIN: 'Administrador', SUPERVISOR: 'Supervisor', AGENCIA: 'Validador SPOT', BKO: 'BKO · double check', GESTOR: 'Gestor' }[perfil()];
     $('quemTxt').textContent = D.usuario.nome + ' · ' + per + (perfil() === 'BKO' && D.usuario.supervisores.length ? ' · ' + D.usuario.supervisores.join(', ') : '');
-    if (perfil() === 'BKO') ETAPA = 'bko'; else if (perfil() === 'SUPERVISOR') ETAPA = 'sup';
+    if (perfil() === 'BKO') ETAPA = 'bko'; else if (perfil() === 'SUPERVISOR' || perfil() === 'AGENCIA') ETAPA = 'sup';
     if (!abasDo().some(a => a[0] === aba)) aba = abasDo()[0][0];
     montarFila(); renderAbas(); renderTudo(); mostrar('app'); irAba(aba, true);
   }
   function renderAbas(){
     const n = { validar: FILA.length };
-    if (D.equipe) n.equipe = D.equipe.filter(e => !e.supervisor || !e.lider).length;
+    if (D.equipe) n.equipe = D.equipe.filter(faltaEq).length;
     if (D.senhas && !D.senhas[D.semanaAtual]) n.senhas = '!';
     $('abas').innerHTML = abasDo().map(([k, t]) => `<button class="aba ${k === aba ? 'on' : ''}" data-aba="${k}">${t}${n[k] ? `<b class="${k !== 'validar' ? 'alerta' : ''}">${n[k]}</b>` : ''}</button>`).join('');
   }
+  const faltaEq = e => !e.supervisor || (e.time !== 'SPOT' && !e.lider);
   function renderTudo(){ renderValidar(); renderEnvios(); if (perfil() === 'ADMIN') { renderSenhas(); renderEquipe(); renderImportar(); renderAcessos(); } }
   function irAba(k, sem){
     aba = k; document.querySelectorAll('.aba').forEach(b => b.classList.toggle('on', b.dataset.aba === k));
@@ -488,13 +497,13 @@
     const colabs = [...new Set(base.filter(i => !F.semana || i.semana === F.semana).map(i => i.colab))].sort();
     let html = `<div class="fila-top">
       <div class="cont"><b>${FILA.length}</b>${FILA.length === 1 ? 'foto para validar' : 'fotos para validar'}</div>
-      ${perfil() === 'ADMIN' ? `<div class="etapa"><button class="chip ${ETAPA === 'sup' ? 'on' : ''}" data-etapa="sup">Etapa supervisor</button><button class="chip ${ETAPA === 'bko' ? 'on' : ''}" data-etapa="bko">Etapa BKO</button></div>` : ''}
+      ${perfil() === 'ADMIN' ? `<div class="etapa"><button class="chip ${ETAPA === 'sup' ? 'on' : ''}" data-etapa="sup">1ª validação</button><button class="chip ${ETAPA === 'bko' ? 'on' : ''}" data-etapa="bko">Etapa BKO</button></div>` : ''}
       <select data-f="semana"><option value="">Todas as semanas</option>${semanas.map(s => `<option value="${s}" ${F.semana === s ? 'selected' : ''}>Semana ${semanaTxt(s)}</option>`).join('')}</select>
       <select data-f="colab"><option value="">Todos os promotores</option>${colabs.map(c => `<option ${F.colab === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>
     </div>`;
     if (!FILA.length) {
-      const semSup = perfil() === 'ADMIN' && ETAPA === 'sup' ? D.itens.filter(i => i.estado === 'pend_sup' && !i.supervisor).length : 0;
-      html += `<div class="fim">✅<b>Nada pendente por aqui.</b><p>${ETAPA === 'bko' ? 'Quando os supervisores aprovarem novas fotos, elas aparecem aqui.' : 'Quando houver uma nova importação, as fotos aparecem aqui.'}</p>
+      const semSup = perfil() === 'ADMIN' && ETAPA === 'sup' ? D.itens.filter(i => i.estado === 'pend_sup' && i.time !== 'SPOT' && !i.supervisor).length : 0;
+      html += `<div class="fim">✅<b>Nada pendente por aqui.</b><p>${ETAPA === 'bko' ? 'Quando a 1ª validação aprovar novas fotos, elas aparecem aqui.' : 'Quando houver uma nova importação, as fotos aparecem aqui.'}</p>
         ${semSup ? `<p style="margin-top:10px;color:var(--amarelo)">${pl(semSup, 'envio está', 'envios estão')} sem supervisor definido. Ajuste na aba Equipe.</p>` : ''}</div>`;
       $('v-validar').innerHTML = html; return;
     }
@@ -518,13 +527,13 @@
         <div class="senha-semana ${senha ? '' : 'falta'}"><span>Senha da semana · ${semanaTxt(i.semana)}</span><b>${senha ? esc(senha) : 'Senha desta semana não cadastrada'}</b></div>
         <div class="info">
           <h2>${esc(i.pdv)}</h2>
-          <div class="c-meta" style="margin-bottom:6px"><span class="id">PDV ${esc(i.cod)}</span><span class="tag t-tipo">${esc(i.rede)}</span><span class="tag t-tipo">${esc(i.uf)}</span>${i.grupo > 1 ? `<span class="tag t-dup">${i.grupo} envios nesta semana</span>` : ''}</div>
-          <div class="linha"><span>Promotor</span><div><b>${esc(i.colab)}</b>${i.supervisor ? ` · <small style="color:var(--sub)">sup. ${esc(i.supervisor)}</small>` : ''}</div></div>
+          <div class="c-meta" style="margin-bottom:6px">${tmTag(i.time)}<span class="id">PDV ${esc(i.cod)}</span><span class="tag t-tipo">${esc(i.rede)}</span><span class="tag t-tipo">${esc(i.uf)}</span>${i.grupo > 1 ? `<span class="tag t-dup">${i.grupo} envios nesta semana</span>` : ''}</div>
+          <div class="linha"><span>Promotor</span><div><b>${esc(i.colab)}</b>${i.supervisor ? ` · <small style="color:var(--sub)">${i.time === 'SPOT' ? 'sup. SPOT' : 'sup.'} ${esc(i.supervisor)}</small>` : ''}</div></div>
           <div class="linha"><span>Visita</span><div>${SEM[dow(i.data)]}, ${brA(i.data)}</div></div>
           <div class="linha"><span>Tipo</span><div class="tipo">${esc(TIPO[i.tipo] || i.tipo)} <span class="pts">${i.pontos} pts</span></div></div>
           <div class="linha"><span>Categoria</span><div>${esc(i.cats || '—')}</div></div>
           <div class="linha"><span>Produtos</span><div>${prods.length ? prods.map(esc).join(', ') : pl(i.prods.length, 'produto foco marcado', 'produtos foco marcados')}</div></div>
-          ${ETAPA === 'bko' ? `<div class="linha"><span>Supervisor</span><div style="color:var(--verde)">Aprovado por ${esc(i.sn)} em ${brA(i.sd.slice(0, 10))}</div></div>` : ''}
+          ${ETAPA === 'bko' ? `<div class="linha"><span>1ª validação</span><div style="color:var(--verde)">${valid1(i)}: aprovado por ${esc(i.sn)} em ${brA(i.sd.slice(0, 10))}</div></div>` : ''}
         </div>
         <div class="confere"><b>O que conferir</b>
           <div class="ex"><i>EXTRA</i><span>Ponto extra montado, com os produtos foco e a senha da semana visível.</span></div>
@@ -566,22 +575,22 @@
     const grupos = { sup: ['pend_sup'], bko: ['pend_bko'], apr: ['aprovada'], rep: ['rep_sup', 'rep_bko'], dup: ['duplicada'], todas: null, pend: ['pend_sup', 'pend_bko'] };
     const q = F.busca.toLowerCase();
     const l = D.itens.filter(i => (!grupos[F.estado] || grupos[F.estado].indexOf(i.estado) >= 0) && (!F.semana || i.semana === F.semana) &&
-      (!q || (i.colab + ' ' + i.pdv + ' ' + i.cod + ' ' + i.rede + ' ' + i.supervisor).toLowerCase().includes(q)));
+      (!F.time || i.time === F.time) && (!q || (i.colab + ' ' + i.pdv + ' ' + i.cod + ' ' + i.rede + ' ' + i.supervisor + ' ' + i.time).toLowerCase().includes(q)));
     const c = k => D.itens.filter(i => !grupos[k] || grupos[k].indexOf(i.estado) >= 0).length;
     const pts = D.itens.filter(i => i.estado === 'aprovada').reduce((s, i) => s + i.pontos, 0);
     let html = `<div class="kpis">
-      <div class="kpi k-marrom"><span>Aguardando</span><b>${c('pend')}</b><small>${D.itens.filter(i => i.estado === 'pend_sup').length} supervisor · ${D.itens.filter(i => i.estado === 'pend_bko').length} BKO</small></div>
+      <div class="kpi k-marrom"><span>Aguardando</span><b>${c('pend')}</b><small>${D.itens.filter(i => i.estado === 'pend_sup').length} na 1ª validação · ${D.itens.filter(i => i.estado === 'pend_bko').length} BKO</small></div>
       <div class="kpi k-verde"><span>Aprovadas</span><b>${c('apr')}</b><small>${pts.toLocaleString('pt-BR')} pontos</small></div>
       <div class="kpi k-verm"><span>Reprovadas</span><b>${c('rep')}</b><small>${D.itens.filter(i => i.estado === 'rep_bko').length} no double check</small></div>
       <div class="kpi k-cinza"><span>Duplicadas</span><b>${c('dup')}</b><small>mesma loja, semana e tipo</small></div></div>
-      <div class="filtros" data-f="estado">${[['sup', 'Aguardam supervisor'], ['bko', 'Aguardam BKO'], ['apr', 'Aprovadas (final)'], ['rep', 'Reprovadas'], ['dup', 'Duplicadas'], ['todas', 'Todas']].map(([k, t]) => `<button class="chip ${F.estado === k ? 'on' : ''}" data-v="${k}">${t} (${c(k)})</button>`).join('')}</div>
-      <div class="linha-f"><select data-f="semana"><option value="">Todas as semanas</option>${semanas.map(s => `<option value="${s}" ${F.semana === s ? 'selected' : ''}>Semana ${semanaTxt(s)}</option>`).join('')}</select>
+      <div class="filtros" data-f="estado">${[['sup', 'Aguardam 1ª validação'], ['bko', 'Aguardam BKO'], ['apr', 'Aprovadas (final)'], ['rep', 'Reprovadas'], ['dup', 'Duplicadas'], ['todas', 'Todas']].map(([k, t]) => `<button class="chip ${F.estado === k ? 'on' : ''}" data-v="${k}">${t} (${c(k)})</button>`).join('')}</div>
+      <div class="linha-f">${D.itens.some(i => i.time === 'SPOT') || perfil() === 'ADMIN' ? `<select data-f="time" style="max-width:170px"><option value="">DIRETOS e SPOT</option>${['DIRETOS', 'SPOT'].map(t => `<option ${F.time === t ? 'selected' : ''}>${t}</option>`).join('')}</select>` : ''}<select data-f="semana"><option value="">Todas as semanas</option>${semanas.map(s => `<option value="${s}" ${F.semana === s ? 'selected' : ''}>Semana ${semanaTxt(s)}</option>`).join('')}</select>
         <input data-f="busca" type="search" placeholder="Buscar promotor, loja, rede…" value="${esc(F.busca)}"></div>`;
     const mostra = l.slice(0, 200);
     html += mostra.map(i => { const e = EST[i.estado] || [i.estado, 'pend'];
       return `<div class="card f-${e[1]}" data-item="${esc(i.id)}"><div class="lista-item">${i.fotos[0] ? `<img class="mini-foto" src="${esc(i.fotos[0])}" loading="lazy" referrerpolicy="no-referrer" alt="">` : '<div class="mini-foto"></div>'}
-        <div class="tx"><div class="c-meta" style="margin-top:0"><span class="tag t-${e[1]}">${e[0]}</span><span class="tag t-tipo">${esc(TIPO[i.tipo] || i.tipo)} · ${i.pontos}</span><span class="id">${brA(i.data)}</span>${i.nat === 'falta' ? '<span class="tag t-natfalta">sem ponto natural</span>' : i.nat === 'ok' ? '<span class="tag t-natok">+ natural</span>' : ''}</div>
-        <div class="c-tit">${esc(i.colab)}</div><div class="c-meta"><span>${esc(i.pdv)}</span><span>${esc(i.uf)}</span>${i.supervisor ? `<span>sup. ${esc(i.supervisor)}</span>` : '<span style="color:var(--amarelo)">sem supervisor</span>'}</div></div></div></div>`; }).join('') ||
+        <div class="tx"><div class="c-meta" style="margin-top:0">${tmTag(i.time)}<span class="tag t-${e[1]}">${e[0]}</span><span class="tag t-tipo">${esc(TIPO[i.tipo] || i.tipo)} · ${i.pontos}</span><span class="id">${brA(i.data)}</span>${i.nat === 'falta' ? '<span class="tag t-natfalta">sem ponto natural</span>' : i.nat === 'ok' ? '<span class="tag t-natok">+ natural</span>' : ''}</div>
+        <div class="c-tit">${esc(i.colab)}</div><div class="c-meta"><span>${esc(i.pdv)}</span><span>${esc(i.uf)}</span>${i.supervisor ? `<span>${i.time === 'SPOT' ? 'sup. SPOT' : 'sup.'} ${esc(i.supervisor)}</span>` : '<span style="color:var(--amarelo)">sem supervisor</span>'}</div></div></div></div>`; }).join('') ||
       '<div class="vazio">Nenhum envio neste filtro.</div>';
     if (l.length > 200) html += `<div class="ajuda" style="text-align:center;margin-top:10px">Mostrando 200 de ${l.length}. Use a busca ou o filtro de semana.</div>`;
     $('v-envios').innerHTML = html;
@@ -589,22 +598,22 @@
   function detItem(i){
     const e = EST[i.estado] || [i.estado, 'pend'], senha = D.senhas[i.semana];
     const p = perfil();
-    const podeDesfazerSup = (p === 'ADMIN' || (p === 'SUPERVISOR' && i.sn === D.usuario.nome)) && i.ss && !i.bs;
+    const podeDesfazerSup = (p === 'ADMIN' || ((p === 'SUPERVISOR' || p === 'AGENCIA') && i.sn === D.usuario.nome)) && i.ss && !i.bs;
     const podeDesfazerBko = (p === 'ADMIN' || (p === 'BKO' && i.bn === D.usuario.nome)) && i.bs;
     abrirFolha(`<span class="id">${esc(i.id)}</span>`, `
       ${[['ex', 'Ponto extra', i.fotos], ['na', 'Ponto natural', i.fotosN || []]].map(([g, t, l]) => `<div class="grupo-fotos ${g}"><small>${t} · ${l.length}</small>
         <div class="thumbs">${l.map((f, k) => `<img src="${esc(f)}" data-zoom="${esc(f)}" class="on ${g === 'na' ? 'na-th' : ''}" style="width:110px;height:110px" referrerpolicy="no-referrer" alt="${t} ${k + 1}">`).join('') ||
         `<div class="ajuda" style="padding:6px 0">${g === 'ex' ? 'Sem foto' : esc(txtNatural(i)[1])}</div>`}</div></div>`).join('')}
       <div class="senha-semana ${senha ? '' : 'falta'}" style="margin-top:12px"><span>Senha da semana · ${semanaTxt(i.semana)}</span><b>${senha ? esc(senha) : 'Não cadastrada'}</b></div>
-      <div class="info"><div class="c-meta" style="margin:0 0 6px"><span class="tag t-${e[1]}">${e[0]}</span><span class="tag t-tipo">${esc(TIPO[i.tipo] || i.tipo)} · ${i.pontos} pts</span></div>
+      <div class="info"><div class="c-meta" style="margin:0 0 6px">${tmTag(i.time)}<span class="tag t-${e[1]}">${e[0]}</span><span class="tag t-tipo">${esc(TIPO[i.tipo] || i.tipo)} · ${i.pontos} pts</span></div>
         <h2>${esc(i.colab)}</h2>
         <div class="linha"><span>Loja</span><div>${esc(i.pdv)} · PDV ${esc(i.cod)} · ${esc(i.rede)} · ${esc(i.uf)}</div></div>
         <div class="linha"><span>Visita</span><div>${SEM[dow(i.data)]}, ${brA(i.data)}</div></div>
-        <div class="linha"><span>Supervisor</span><div>${i.ss ? `${i.ss === 'Aprovada' ? '✓' : '✕'} ${esc(i.ss)} por ${esc(i.sn)} · ${esc(i.sd)}` : 'Ainda não avaliou'}</div></div>
+        <div class="linha"><span>1ª validação</span><div>${i.ss ? `${i.ss === 'Aprovada' ? '✓' : '✕'} ${esc(i.ss)} por ${esc(i.sn)} · ${esc(i.sd)}` : 'Aguardando ' + (i.time === 'SPOT' ? 'a agência SPOT' : 'o supervisor')}</div></div>
         <div class="linha"><span>BKO</span><div>${i.bs ? `${i.bs === 'Aprovada' ? '✓' : '✕'} ${esc(i.bs)} por ${esc(i.bn)} · ${esc(i.bd)}` : (i.ss === 'Aprovada' ? 'Aguardando double check' : '—')}</div></div>
         ${i.estado === 'duplicada' ? `<div class="linha"><span>Motivo</span><div>Já existe um envio válido do mesmo promotor, na mesma loja, semana e tipo (<span class="id">${esc(i.dupDe || '')}</span>). Se aquele for reprovado, este volta para a fila.</div></div>` : ''}
       </div>`,
-      (podeDesfazerSup && !podeDesfazerBko ? '<button class="btn sec" id="diDesSup">Desfazer avaliação do supervisor</button>' : '') + (podeDesfazerBko ? '<button class="btn sec" id="diDesBko">Desfazer avaliação do BKO</button>' : ''));
+      (podeDesfazerSup && !podeDesfazerBko ? '<button class="btn sec" id="diDesSup">Desfazer 1ª validação</button>' : '') + (podeDesfazerBko ? '<button class="btn sec" id="diDesBko">Desfazer avaliação do BKO</button>' : ''));
     if ($('diDesSup')) $('diDesSup').onclick = ev => chamar('validar', [i.id, '', 'sup'], txt => { aplicarGrupo(txt); fecharFolha(); toast('Avaliação desfeita. O envio voltou para a fila.', 'ok'); }, ev.currentTarget);
     if ($('diDesBko')) $('diDesBko').onclick = ev => chamar('validar', [i.id, '', 'bko'], txt => { aplicarGrupo(txt); fecharFolha(); toast('Double check desfeito.', 'ok'); }, ev.currentTarget);
   }
@@ -623,35 +632,48 @@
   }
 
   /* ---------- Equipe (ADMIN) ---------- */
+  function lerEquipe(){   // guarda o que está digitado na tela antes de redesenhar ou salvar
+    document.querySelectorAll('[data-eq]').forEach(x => { const e = D.equipe.find(y => y.colab === x.dataset.eq); if (!e) return;
+      e.supervisor = x.value.trim(); const l = document.querySelector(`[data-eqlid="${CSS.escape(x.dataset.eq)}"]`); if (l && !l.disabled) e.lider = l.value.trim();
+      const t = document.querySelector(`[data-eqtime="${CSS.escape(x.dataset.eq)}"]`); if (t) e.time = t.value; });
+  }
   function renderEquipe(){
-    const E = D.equipe.slice().sort((a, b) => (!!(a.supervisor && a.lider) - !!(b.supervisor && b.lider)) || a.uf.localeCompare(b.uf) || a.colab.localeCompare(b.colab));
-    const sups = D.supervisores, lids = D.lideres || [];
-    const falta = e => !e.supervisor || !e.lider;
-    const l = F.eqFiltro === 'sem' ? E.filter(falta) : E;
-    const ufs = [...new Set(E.map(e => e.uf))].sort();
+    const E = D.equipe.slice().sort((a, b) => (!faltaEq(a) - !faltaEq(b)) || (a.time === 'SPOT') - (b.time === 'SPOT') || a.uf.localeCompare(b.uf) || a.colab.localeCompare(b.colab));
+    const sups = D.supervisores, lids = D.lideres || [], spot = D.supSpot || [];
+    const l = F.eqFiltro === 'sem' ? E.filter(faltaEq) : F.eqFiltro === 'SPOT' ? E.filter(e => e.time === 'SPOT') : F.eqFiltro === 'DIRETOS' ? E.filter(e => e.time !== 'SPOT') : E;
+    const ufs = [...new Set(E.filter(e => e.time !== 'SPOT').map(e => e.uf))].sort();
     const reg = {}; D.regrasUF.forEach(r => reg[r.uf] = r);
     const sel = (v, attr) => `<select ${attr}><option value="">—</option>${sups.map(s => `<option ${s === v ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>`;
     const lid = (v, attr) => `<input ${attr} list="dlLid" value="${esc(v || '')}" placeholder="Nome do líder">`;
-    const porLider = {}; E.forEach(e => { if (e.lider) porLider[e.lider] = (porLider[e.lider] || 0) + 1; });
+    const supCel = e => e.time === 'SPOT' ? `<input data-eq="${esc(e.colab)}" list="dlSpot" value="${esc(e.supervisor || '')}" placeholder="Supervisor SPOT">` : sel(e.supervisor, `data-eq="${esc(e.colab)}"`);
+    const lidCel = e => e.time === 'SPOT' ? `<input data-eqlid="${esc(e.colab)}" disabled value="" placeholder="equipe = supervisor SPOT">` : lid(e.lider, `data-eqlid="${esc(e.colab)}"`);
+    const timeCel = e => `<select data-eqtime="${esc(e.colab)}" style="min-width:110px">${['DIRETOS', 'SPOT'].map(t => `<option ${(e.time || 'DIRETOS') === t ? 'selected' : ''}>${t}</option>`).join('')}</select>`;
+    const porEq = {}; E.forEach(e => { const n = e.time === 'SPOT' ? e.supervisor : e.lider; if (n) { const k = (e.time === 'SPOT' ? 'SPOT' : 'DIRETOS') + '|' + n; porEq[k] = (porEq[k] || 0) + 1; } });
+    const nS = E.filter(e => e.time === 'SPOT').length;
     $('v-equipe').innerHTML = `
       <datalist id="dlLid">${lids.map(x => `<option value="${esc(x)}">`).join('')}</datalist>
-      <div class="secao">Supervisor e líder por UF <button class="btn mini" data-acao="salvarRegras">Salvar regras</button></div>
-      <div class="ajuda">Promotor novo que chegar numa importação já entra com o supervisor e o líder da UF dele. O <b>líder define a equipe</b> da premiação (top 5 de cada equipe e a melhor média).</div>
+      <datalist id="dlSpot">${spot.map(x => `<option value="${esc(x)}">`).join('')}</datalist>
+      <div class="secao">Supervisor e líder por UF · DIRETOS <button class="btn mini" data-acao="salvarRegras">Salvar regras</button></div>
+      <div class="ajuda">Vale só para o time DIRETOS: promotor novo que chegar numa importação já entra com o supervisor e o líder da UF dele. No DIRETOS, o <b>líder define a equipe</b> da premiação; na SPOT, a equipe é o <b>supervisor da agência</b>.</div>
       <div class="bloco" style="margin-top:10px;overflow-x:auto"><table class="tabela"><tr><th>UF</th><th>Supervisor</th><th>Líder</th><th>Promotores</th></tr>
-        ${ufs.map(u => `<tr><td class="mono">${esc(u)}</td><td>${sel((reg[u] || {}).supervisor || '', `data-reguf="${esc(u)}"`)}</td><td>${lid((reg[u] || {}).lider, `data-reglid="${esc(u)}"`)}</td><td>${E.filter(e => e.uf === u).length}</td></tr>`).join('')}</table>
+        ${ufs.map(u => `<tr><td class="mono">${esc(u)}</td><td>${sel((reg[u] || {}).supervisor || '', `data-reguf="${esc(u)}"`)}</td><td>${lid((reg[u] || {}).lider, `data-reglid="${esc(u)}"`)}</td><td>${E.filter(e => e.uf === u && e.time !== 'SPOT').length}</td></tr>`).join('')}</table>
         <button class="btn sec mini" data-acao="aplicarRegras" style="margin:10px 0 6px">Aplicar a regra em quem está sem supervisor ou sem líder</button></div>
-      ${Object.keys(porLider).length ? `<div class="c-meta" style="margin-top:10px">${Object.keys(porLider).sort().map(x => `<span class="tag t-tipo">${esc(x)} · ${porLider[x]}</span>`).join('')}</div>` : ''}
+      ${Object.keys(porEq).length ? `<div class="c-meta" style="margin-top:10px">${Object.keys(porEq).sort().map(k => `<span class="tag ${k.startsWith('SPOT') ? 'tm-SPOT' : 't-tipo'}">${esc(k.split('|')[1])} · ${porEq[k]}</span>`).join('')}</div>` : ''}
       <div class="secao">Promotores <button class="btn mini" data-acao="salvarEquipe">Salvar equipe</button></div>
-      <div class="filtros" data-f="eqFiltro"><button class="chip ${F.eqFiltro === 'sem' ? 'on' : ''}" data-v="sem">Sem supervisor ou líder (${E.filter(falta).length})</button><button class="chip ${F.eqFiltro === 'todos' ? 'on' : ''}" data-v="todos">Todos (${E.length})</button></div>
-      <div class="bloco" style="margin-top:10px;overflow-x:auto">${l.length ? `<table class="tabela"><tr><th>Promotor</th><th>UF</th><th>Supervisor</th><th>Líder</th></tr>
-        ${l.map(e => `<tr><td>${esc(e.colab)}</td><td class="mono">${esc(e.uf)}</td><td>${sel(e.supervisor, `data-eq="${esc(e.colab)}"`)}</td><td>${lid(e.lider, `data-eqlid="${esc(e.colab)}"`)}</td></tr>`).join('')}</table>` : '<div class="vazio">Todo mundo tem supervisor e líder. 👏</div>'}</div>
-      <div class="aviso">Os supervisores vêm do cadastro de acessos (perfil Supervisor na TRI GOLD). O líder é só o nome da equipe na premiação: escreva igual para todos do mesmo time.</div>`;
+      <div class="filtros" data-f="eqFiltro">${[['sem', `Sem supervisor ou equipe (${E.filter(faltaEq).length})`], ['DIRETOS', `DIRETOS (${E.length - nS})`], ['SPOT', `SPOT (${nS})`], ['todos', `Todos (${E.length})`]]
+        .map(([k, t]) => `<button class="chip ${F.eqFiltro === k ? 'on' : ''}" data-v="${k}">${t}</button>`).join('')}</div>
+      <div class="bloco" style="margin-top:10px;overflow-x:auto">${l.length ? `<table class="tabela"><tr><th>Promotor</th><th>UF</th><th>Time</th><th>Supervisor</th><th>Líder</th></tr>
+        ${l.map(e => `<tr><td>${esc(e.colab)}</td><td class="mono">${esc(e.uf)}</td><td>${timeCel(e)}</td><td>${supCel(e)}</td><td>${lidCel(e)}</td></tr>`).join('')}</table>` : '<div class="vazio">Ninguém neste filtro.</div>'}</div>
+      <div class="aviso">DIRETOS: o supervisor vem do cadastro de acessos (perfil Supervisor na TRI GOLD) e o líder é o nome da equipe na premiação, escrito igual para todo o time.
+        SPOT: escreva o nome do supervisor da agência; ele é a equipe na premiação. A 1ª validação da SPOT é feita pelo validador da agência (perfil Validador SPOT).</div>`;
   }
 
   /* ---------- Importar (ADMIN) ---------- */
   function renderImportar(){
     $('v-importar').innerHTML = `<div class="secao">Importar exportação da pesquisa</div>
       <div class="ajuda">Envie o arquivo exportado da pesquisa TRI GOLD (.xlsx ou .csv). O app só acrescenta os envios novos: pode mandar o arquivo completo toda vez, sem medo de duplicar.</div>
+      <div class="tm-sel">${['DIRETOS', 'SPOT'].map(t => `<button class="${IMTIME === t ? 'on' : ''}" data-imtime="${t}">Base ${t === 'SPOT' ? 'SPOT (agência)' : 'DIRETOS (nosso time)'}</button>`).join('')}</div>
+      <div class="ajuda" style="margin-top:6px">Escolha de quem é a base antes de enviar. Promotor novo entra na Equipe com esse time.</div>
       <label class="arq" id="imBox" style="margin-top:14px"><input type="file" id="imArq" accept=".xlsx,.xls,.csv"><span>⬆</span><span id="imNome">Escolher arquivo da exportação</span></label>
       <div id="imPrev"></div>`;
     $('imArq').onchange = lerExportacao;
@@ -671,10 +693,10 @@
       IMPORT = normalizar(rows);
       const sem = [...new Set(IMPORT.map(l => l.data))].sort();
       const nao = IMPORT.filter(l => /^n/i.test(l.montou)).length;
-      $('imPrev').innerHTML = `<div class="kpis"><div class="kpi k-navy"><span>Linhas no arquivo</span><b>${IMPORT.length}</b><small>${nao} "não montou" serão ignoradas</small></div>
+      $('imPrev').innerHTML = `<div class="kpis"><div class="kpi k-navy"><span>Linhas no arquivo · ${tmTag(IMTIME)}</span><b>${IMPORT.length}</b><small>${nao} "não montou" serão ignoradas</small></div>
         <div class="kpi k-teal"><span>Período</span><b style="font-size:20px">${brA(sem[0])} a ${brA(sem[sem.length - 1])}</b><small>${new Set(IMPORT.map(l => l.colab)).size} promotores</small></div>
         <div class="kpi k-teal"><span>Com foto do ponto natural</span><b>${IMPORT.filter(l => /https?:/.test(l.fotosN)).length}</b><small>${IMPORT.some(l => 'fotosN' in l) ? 'as já importadas só recebem a foto, sem perder a validação' : ''}</small></div></div>
-        <div class="acoes" style="grid-template-columns:1fr"><button class="btn verde" id="imOk">Importar ${IMPORT.length} linhas</button></div>`;
+        <div class="acoes" style="grid-template-columns:1fr"><button class="btn verde" id="imOk">Importar ${IMPORT.length} linhas como ${IMTIME}</button></div>`;
       $('imOk').onclick = enviarImport;
     } catch (e) { $('imPrev').innerHTML = `<div class="aviso">${esc(e.message)}</div>`; }
   }
@@ -709,7 +731,7 @@
       }
       btn.disabled = true; btn.innerHTML = `<span class="spin"></span>Enviando ${Math.min(k + LOTE, IMPORT.length)} de ${IMPORT.length}`;
       google.script.run.withSuccessHandler(r => { Object.keys(tot).forEach(x => tot[x] += r[x] || 0); k += LOTE; passo(); })
-        .withFailureHandler(e => { btn.disabled = false; btn.textContent = 'Tentar de novo'; toast(esc(e.message), 'erro', 6000); }).importar(CRED.email, CRED.senha, IMPORT.slice(k, k + LOTE));
+        .withFailureHandler(e => { btn.disabled = false; btn.textContent = 'Tentar de novo'; toast(esc(e.message), 'erro', 6000); }).importar(CRED.email, CRED.senha, IMPORT.slice(k, k + LOTE), IMTIME);
     };
     passo();
   }
@@ -738,8 +760,8 @@
     abrirFolha(novo ? 'Novo acesso' : 'Editar acesso', `
       <div class="campo"><label class="l">Nome</label><input id="faNome" value="${esc(a.nome || '')}" placeholder="Como aparece para o time"></div>
       <div class="campo"><label class="l">E-mail</label><input id="faEmail" type="email" value="${esc(a.email || '')}" ${novo ? '' : 'disabled'}></div>
-      <div class="campo"><label class="l">Perfil</label><select id="faPerfil">${[['SUPERVISOR', 'Supervisor · valida as fotos do time'], ['BKO', 'BKO · double check das aprovadas'], ['GESTOR', 'Gestor · só consulta'], ['ADMIN', 'Administrador']].map(([k, t]) => `<option value="${k}" ${a.perfil === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
-      <div class="campo" id="faSupBox"><label class="l">Supervisores que este BKO confere</label>${D.supervisores.map(s => `<label class="lembrar" style="margin:6px 0"><input type="checkbox" class="faSup" value="${esc(s)}" ${marcados.indexOf(s) >= 0 ? 'checked' : ''}> ${esc(s)}</label>`).join('')}</div>
+      <div class="campo"><label class="l">Perfil</label><select id="faPerfil">${[['SUPERVISOR', 'Supervisor · valida as fotos do time'], ['AGENCIA', 'Validador SPOT · 1ª validação da agência'], ['BKO', 'BKO · double check das aprovadas'], ['GESTOR', 'Gestor · só consulta'], ['ADMIN', 'Administrador']].map(([k, t]) => `<option value="${k}" ${a.perfil === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+      <div class="campo" id="faSupBox"><label class="l">Supervisores que este BKO confere</label>${D.supervisores.concat(['SPOT']).map(s => `<label class="lembrar" style="margin:6px 0"><input type="checkbox" class="faSup" value="${esc(s)}" ${marcados.indexOf(s) >= 0 ? 'checked' : ''}> ${s === 'SPOT' ? '<b>SPOT</b> (tudo que a agência aprovar)' : esc(s)}</label>`).join('')}</div>
       ${novo ? '<div class="ajuda" style="margin-top:12px">A senha é gerada automaticamente e aparece uma única vez.</div>' : `<label class="lembrar" style="margin-top:14px"><input type="checkbox" id="faAtivo" ${a.ativo ? 'checked' : ''}> Acesso ativo</label>`}`,
       novo ? '<button class="btn sec" data-acao="fechar">Cancelar</button><button class="btn" id="faOk">Criar acesso</button>' : '<button class="btn sec" id="faSenha">Gerar nova senha</button><button class="btn" id="faOk">Salvar</button>');
     const vis = () => $('faSupBox').classList.toggle('hidden', $('faPerfil').value !== 'BKO'); $('faPerfil').onchange = vis; vis();
@@ -786,6 +808,7 @@
     if (t.id === 'fotoP') { $('zoomImg').src = t.src; return $('zoom').classList.remove('hidden'); }
     const zo = t.closest('[data-zoom]'); if (zo) { $('zoomImg').src = zo.dataset.zoom; return $('zoom').classList.remove('hidden'); }
     const pu = t.closest('[data-pular]'); if (pu) { if (FILA.length > 1) { POS = (POS + 1) % FILA.length; FOTO = 0; renderValidar(); } return; }
+    const imt = t.closest('[data-imtime]'); if (imt) { IMTIME = imt.dataset.imtime; IMPORT = []; return renderImportar(); }
     const et = t.closest('[data-etapa]'); if (et) { ETAPA = et.dataset.etapa; POS = 0; FOTO = 0; montarFila(); renderValidar(); renderAbas(); return; }
     const it = t.closest('[data-item]'); if (it) return detItem(D.itens.find(x => x.id === it.dataset.item));
     const ac = t.closest('[data-acesso]'); if (ac) return formAcesso(D.acessos[Number(ac.dataset.acesso)]);
@@ -799,19 +822,20 @@
       if (k === 'desligarCentral') return chamar('ligarCadastroCentral', [''], () => carregar('Voltou para o cadastro local.'), a);
       if (k === 'salvarRegras') return chamar('salvarRegrasUF', [[...document.querySelectorAll('[data-reguf]')].map(s => ({ uf: s.dataset.reguf, supervisor: s.value,
         lider: document.querySelector(`[data-reglid="${s.dataset.reguf}"]`).value.trim() }))], () => carregar('Regras salvas.'), a);
-      if (k === 'aplicarRegras') { const reg = {}; document.querySelectorAll('[data-reguf]').forEach(s => reg[s.dataset.reguf] = { sup: s.value, lid: document.querySelector(`[data-reglid="${s.dataset.reguf}"]`).value.trim() });
-        const lista = D.equipe.filter(x => reg[x.uf] && ((!x.supervisor && reg[x.uf].sup) || (!x.lider && reg[x.uf].lid)))
+      if (k === 'aplicarRegras') { lerEquipe(); const reg = {}; document.querySelectorAll('[data-reguf]').forEach(s => reg[s.dataset.reguf] = { sup: s.value, lid: document.querySelector(`[data-reglid="${s.dataset.reguf}"]`).value.trim() });
+        const lista = D.equipe.filter(x => x.time !== 'SPOT' && reg[x.uf] && ((!x.supervisor && reg[x.uf].sup) || (!x.lider && reg[x.uf].lid)))
           .map(x => ({ colab: x.colab, supervisor: x.supervisor || reg[x.uf].sup, lider: x.lider || reg[x.uf].lid }));
         if (!lista.length) return toast('Ninguém para completar nas UFs com regra.');
         return chamar('salvarEquipe', [lista], () => carregar(pl(lista.length, 'promotor recebeu', 'promotores receberam') + ' supervisor.'), a); }
-      if (k === 'salvarEquipe') return chamar('salvarEquipe', [[...document.querySelectorAll('[data-eq]')].map(s => ({ colab: s.dataset.eq, supervisor: s.value,
-        lider: document.querySelector(`[data-eqlid="${CSS.escape(s.dataset.eq)}"]`).value.trim() }))], () => carregar('Equipe salva.'), a);
+      if (k === 'salvarEquipe') { lerEquipe(); const vis = new Set([...document.querySelectorAll('[data-eq]')].map(x => x.dataset.eq));
+        return chamar('salvarEquipe', [D.equipe.filter(e => vis.has(e.colab)).map(e => ({ colab: e.colab, supervisor: e.supervisor, lider: e.lider, time: e.time }))], () => carregar('Equipe salva.'), a); }
       if (k === 'salvarProdutos') return chamar('salvarProdutos', [[...document.querySelectorAll('[data-prod]')].map(i => ({ id: i.dataset.prod, nome: i.value.trim() }))], () => carregar('Produtos salvos.'), a);
     }
     const chip = t.closest('.filtros .chip');
-    if (chip && chip.parentElement.dataset.f) { F[chip.parentElement.dataset.f] = chip.dataset.v; return chip.parentElement.dataset.f === 'eqFiltro' ? renderEquipe() : renderEnvios(); }
+    if (chip && chip.parentElement.dataset.f) { if (chip.parentElement.dataset.f === 'eqFiltro') lerEquipe(); F[chip.parentElement.dataset.f] = chip.dataset.v; return chip.parentElement.dataset.f === 'eqFiltro' ? renderEquipe() : renderEnvios(); }
   });
   document.body.addEventListener('change', e => {
+    if (e.target.dataset && e.target.dataset.eqtime) { lerEquipe(); return renderEquipe(); }
     const k = e.target.dataset && e.target.dataset.f; if (!k || k === 'busca') return;
     F[k] = e.target.value; if (k === 'semana') F.colab = '';
     POS = 0; FOTO = 0; montarFila(); renderValidar(); renderEnvios(); renderAbas();
