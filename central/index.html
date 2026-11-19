@@ -308,6 +308,15 @@
   }
   .fundo{z-index:47} .folha{z-index:48}
   .tabela-tg{width:100%;border-collapse:collapse;font-size:13px;min-width:620px}
+  #v-trigold .secao{white-space:normal}
+  .tag.tm-DIRETOS,.tag.tm-SPOT{border:0;font-weight:900;letter-spacing:1px}
+  .tag.tm-DIRETOS{background:#2f6bff;color:#fff} .tag.tm-SPOT{background:#ff8a3d;color:#1f0e00}
+  .vt.inel{opacity:.55} .vt.inel .vt-barra u{background:#4a5163;box-shadow:none}
+  .chip.tmc-SPOT{border-color:rgba(255,138,61,.55)} .chip.tmc-SPOT.on{background:#ff8a3d;color:#1f0e00;border-color:#ff8a3d}
+  .chip.tmc-DIRETOS{border-color:rgba(47,107,255,.55)} .chip.tmc-DIRETOS.on{background:#2f6bff;color:#fff;border-color:#2f6bff}
+  .tm-split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px} @media (max-width:560px){ .tm-split{grid-template-columns:1fr} }
+  .tm-box{border:1px solid var(--borda);border-radius:14px;padding:12px 14px;background:var(--card)} .tm-box.SPOT{border-color:rgba(255,138,61,.45)} .tm-box.DIRETOS{border-color:rgba(47,107,255,.45)}
+  .tm-box .lin{display:flex;justify-content:space-between;font-size:13px;margin-top:6px;color:var(--sub)} .tm-box .lin b{color:#fff}
   .tabela-tg th{font-family:var(--mono);font-size:9.5px;color:var(--sub);text-transform:uppercase;letter-spacing:1px;text-align:left;padding:10px 8px;border-bottom:1px solid var(--borda)}
   .tabela-tg td{padding:10px 8px;border-bottom:1px solid var(--linha)}
   .tabela-tg tr:last-child td{border-bottom:0}
@@ -1340,7 +1349,7 @@
 
   /* ---------- Configurações (só ADMIN) ---------- */
   const PERFIL_TXT = { ADMIN: 'Administrador · edita tudo', GESTOR: 'Gestor · vê tudo, sem editar', SOLICITANTE: 'Solicitante · formulários e pedidos' };
-  const TG_TXT = { SUPERVISOR: 'Supervisor · valida as fotos do time', BKO: 'BKO · double check das aprovadas', GESTOR: 'Gestor · só consulta', ADMIN: 'Administrador' };
+  const TG_TXT = { SUPERVISOR: 'Supervisor · valida as fotos do time', AGENCIA: 'Validador SPOT · 1ª validação da agência', BKO: 'BKO · double check das aprovadas', GESTOR: 'Gestor · só consulta', ADMIN: 'Administrador' };
   const AG_TXT = { SUPERVISOR: 'Supervisor', LIDER: 'Líder' };
   function etiquetas(u){
     const t = [];
@@ -1415,7 +1424,7 @@
       <div class="ajuda">Escolha o que a pessoa acessa. Deixe "Sem acesso" nas que ela não usa.</div>
       <div class="campo"><label class="l">Central do BI</label>${sel('fuPerfil', PERFIL_TXT, u.perfil, 'Sem acesso', eu)}</div>
       <div class="campo"><label class="l">TRI GOLD · validação de fotos</label>${sel('fuTg', TG_TXT, u.trigold, 'Sem acesso')}</div>
-      <div class="campo" id="fuTgSupBox"><label class="l">Supervisores que este BKO confere</label>${sups.map(s => `<label class="lembrar" style="margin:6px 0"><input type="checkbox" class="fuTgSup" value="${esc(s)}" ${marc.indexOf(s) >= 0 ? 'checked' : ''}> ${esc(s)}</label>`).join('') || '<div class="ajuda">Cadastre primeiro os supervisores da TRI GOLD.</div>'}</div>
+      <div class="campo" id="fuTgSupBox"><label class="l">Supervisores que este BKO confere</label>${sups.concat(['SPOT']).map(s => `<label class="lembrar" style="margin:6px 0"><input type="checkbox" class="fuTgSup" value="${esc(s)}" ${marc.indexOf(s) >= 0 ? 'checked' : ''}> ${s === 'SPOT' ? '<b>SPOT</b> · tudo que a agência aprovar' : esc(s)}</label>`).join('')}</div>
       <div class="dupla"><div class="campo"><label class="l">Agenda Semanal</label>${sel('fuAg', AG_TXT, u.agenda, 'Sem acesso')}</div>
         <div class="campo" id="fuAgCodBox"><label class="l">Código do usuário no Smart</label><input id="fuAgCod" class="mono" value="${esc(u.agendaCodigo || '')}" placeholder="ex.: patricia.sp"></div></div>
       ${novo ? '<div class="ajuda" style="margin-top:12px">A senha é gerada automaticamente e aparece uma única vez, junto com a mensagem pronta para enviar. É a mesma senha para todas as ferramentas.</div>'
@@ -1574,30 +1583,41 @@
   /* ---------- TRI GOLD (só ADMIN e GESTOR) ---------- */
   const TIPO_TG = { GONDOLA: 'Ponta de gôndola', GELADEIRA: 'Porta de geladeira', ILHA: 'Ilha' };
   const reais = n => 'R$ ' + Number(n || 0).toLocaleString('pt-BR');
+  const tmTag = t => `<span class="tag tm-${t === 'SPOT' ? 'SPOT' : 'DIRETOS'}">${t === 'SPOT' ? 'SPOT' : 'DIRETOS'}</span>`;
   function premiacaoHtml(T){
     const P = T.premiacao;
     if (!P) return '';
-    if (!P.grupos.length) return `<div class="secao">Premiação</div><div class="aviso">Para montar a premiação, defina o <b>líder</b> de cada promotor no app TRI GOLD (aba Equipe).</div>`;
+    if (!P.grupos.length) return `<div class="secao">Premiação</div><div class="aviso">Para montar a premiação, defina a equipe de cada promotor no app TRI GOLD (aba Equipe): <b>líder</b> no DIRETOS, <b>supervisor da agência</b> na SPOT.</div>`;
     const medalha = k => ['🥇', '🥈', '🥉'][k] || (k + 1) + 'º';
-    const lid = F.tgLider && P.grupos.some(g => g.lider === F.tgLider) ? F.tgLider : P.grupos[0].lider;
-    const g = P.grupos.find(x => x.lider === lid);
+    const chave = g => g.time + '|' + g.lider;
+    const sel = F.tgLider && P.grupos.some(g => chave(g) === F.tgLider) ? F.tgLider : chave(P.grupos[0]);
+    const g = P.grupos.find(x => chave(x) === sel);
     const mx = Math.max(1, ...g.ranking.map(r => r.pontos));
     const lista = g.ranking.slice(0, F.tgTodos ? 999 : Math.max(10, P.premiosInd.length));
+    const min = (P.minimo || 0).toLocaleString('pt-BR');
+    const porTime = t => P.grupos.filter(x => x.time === t);
+    const BR = P.brasil || [], nBr = (P.premiosBrasil || []).length;
     return `
-      <div class="secao">Melhor média por equipe de líder</div>
-      <div class="ajuda">Média = pontos aprovados da equipe ÷ número de promotores da equipe. Prêmios: ${P.premiosEq.map((v, k) => (k + 1) + 'º ' + reais(v)).join(' · ')}.</div>
-      <div class="bloco" style="margin-top:10px;overflow-x:auto"><table class="tabela-tg"><tr><th></th><th>Líder</th><th>Supervisor</th><th>Promotores</th><th>Pontos</th><th>Média</th><th>Prêmio</th></tr>
-        ${P.grupos.map((e, k) => `<tr style="${e.premio ? '' : 'opacity:.75'}"><td style="font-size:16px">${medalha(k)}</td><td><b>${esc(e.lider)}</b></td><td>${esc(e.supervisores.join(', ') || '—')}</td><td>${e.membros}</td>
-          <td>${e.soma.toLocaleString('pt-BR')}</td><td class="mono" style="color:#fff;font-weight:700">${e.media.toLocaleString('pt-BR')}</td>
+      ${nBr ? `<div class="secao">Top ${nBr} Brasil · DIRETOS x SPOT</div>
+      <div class="ajuda">Disputa única entre todos os promotores elegíveis (mínimo ${min} pts). Prêmio: ${P.premiosBrasil.map((v, k) => (k + 1) + 'º ' + reais(v)).join(' · ')}, somado ao prêmio que o promotor já recebe na equipe.</div>
+      <div class="bloco" style="margin-top:10px;overflow-x:auto">${BR.length ? `<table class="tabela-tg"><tr><th></th><th>Time</th><th>Promotor</th><th>Equipe</th><th>Pontos</th><th>Prêmio Brasil</th><th>+ na equipe</th><th>Total</th></tr>
+        ${BR.slice(0, Math.max(nBr + 2, 5)).map((p, k) => `<tr style="${p.premio ? '' : 'opacity:.6'}"><td style="font-size:16px">${p.premio ? medalha(k) : p.posicao + 'º'}</td><td>${tmTag(p.time)}</td><td><b>${esc(p.colab)}</b> <small style="color:var(--sub)">· ${esc(p.uf)}</small></td>
+          <td>${esc(p.equipe || '—')}</td><td class="mono" style="color:#fff;font-weight:700">${p.pontos.toLocaleString('pt-BR')}</td><td>${p.premio ? `<span class="tag t-feito">${reais(p.premio)}</span>` : '—'}${p.empate ? ' <span class="tag t-ultimo">empate</span>' : ''}</td>
+          <td>${p.premioEquipe ? reais(p.premioEquipe) : '—'}</td><td>${p.premio ? `<b style="color:#fff">${reais(p.premio + (p.premioEquipe || 0))}</b>` : '—'}</td></tr>`).join('')}</table>` : `<div class="vazio">Ninguém atingiu ${min} pts ainda.</div>`}</div>` : ''}
+      <div class="secao">Média por equipe · DIRETOS + SPOT</div>
+      <div class="ajuda">Ranking único. Média = pontos dos promotores <b>elegíveis</b> (mínimo ${min} pts aprovados) ÷ número de elegíveis da equipe. Quem não atingiu o mínimo não entra na média. Prêmios: ${P.premiosEq.map((v, k) => (k + 1) + 'º ' + reais(v)).join(' · ')}.</div>
+      <div class="bloco" style="margin-top:10px;overflow-x:auto"><table class="tabela-tg"><tr><th></th><th>Time</th><th>Equipe</th><th>Elegíveis</th><th>Pontos dos elegíveis</th><th>Média</th><th>Prêmio</th></tr>
+        ${P.grupos.map((e, k) => `<tr style="${e.premio ? '' : 'opacity:.75'}"><td style="font-size:16px">${e.media ? medalha(k) : '—'}</td><td>${tmTag(e.time)}</td><td><b>${esc(e.lider)}</b>${e.time !== 'SPOT' && e.supervisores.length ? `<br><small style="color:var(--sub)">sup. ${esc(e.supervisores.join(', '))}</small>` : ''}</td>
+          <td><b style="color:#fff">${e.elegiveis}</b> <small style="color:var(--sub)">de ${e.membros}</small></td><td>${e.soma.toLocaleString('pt-BR')}</td><td class="mono" style="color:#fff;font-weight:700">${e.media.toLocaleString('pt-BR')}</td>
           <td>${e.premio ? `<span class="tag t-feito">${reais(e.premio)}</span>` : '—'}${e.empate ? ' <span class="tag t-ultimo">empate</span>' : ''}</td></tr>`).join('')}</table></div>
-      ${P.semLider ? `<div class="aviso">${pl(P.semLider, 'promotor está', 'promotores estão')} sem líder definido e fora da premiação. Ajuste no app TRI GOLD › Equipe.</div>` : ''}
-      <div class="secao">Ranking por equipe · top ${P.premiosInd.length} premiados</div>
-      <div class="ajuda">Prêmios em cada equipe: ${P.premiosInd.map((v, k) => (k + 1) + 'º ' + reais(v)).join(' · ')}. Desempate: mais pontos extras aprovados, depois mais gôndolas.</div>
-      <div class="filtros" data-f="tgLider">${P.grupos.map(e => `<button class="chip ${e.lider === lid ? 'on' : ''}" data-v="${esc(e.lider)}">${esc(e.lider)}</button>`).join('')}</div>
+      ${P.semLider ? `<div class="aviso">${pl(P.semLider, 'promotor está', 'promotores estão')} sem equipe definida (líder no DIRETOS ou supervisor na SPOT) e fora da premiação. Ajuste no app TRI GOLD › Equipe.</div>` : ''}
+      <div class="secao">Ranking por equipe · top ${P.premiosInd.length}</div>
+      <div class="ajuda">Só recebe prêmio quem tem no mínimo ${min} pts aprovados. Prêmios em cada equipe: ${P.premiosInd.map((v, k) => (k + 1) + 'º ' + reais(v)).join(' · ')}. Desempate: mais pontos extras aprovados, depois mais gôndolas.</div>
+      ${['DIRETOS', 'SPOT'].filter(t => porTime(t).length).map(t => `<div class="filtros" data-f="tgLider" style="margin-top:8px">${tmTag(t)}${porTime(t).map(e => `<button class="chip tmc-${t} ${chave(e) === sel ? 'on' : ''}" data-v="${esc(chave(e))}">${esc(e.lider)}</button>`).join('')}</div>`).join('')}
       <div class="bloco" style="margin-top:10px">
-        <div class="c-meta" style="margin:6px 0 4px"><span>${pl(g.membros, 'promotor', 'promotores')}</span><span>média ${g.media.toLocaleString('pt-BR')} pts</span><span>${esc(g.supervisores.join(', '))}</span></div>
-        ${lista.map(r => `<div class="vt ${r.premio ? 'top' : ''}"><div class="vt-cab"><span class="vt-pos">${r.posicao}º</span>
-          <b>${esc(r.colab)} <small style="color:var(--sub);font-weight:500">· ${esc(r.uf)}</small>${r.premio ? ` <span class="tag t-feito">${reais(r.premio)}</span>` : ''}${r.empate ? ' <span class="tag t-ultimo">empate</span>' : ''}</b>
+        <div class="c-meta" style="margin:6px 0 4px">${tmTag(g.time)}<span>${pl(g.membros, 'promotor', 'promotores')} · <b style="color:#fff">${g.elegiveis}</b> elegíve${g.elegiveis === 1 ? 'l' : 'is'}</span><span>média ${g.media.toLocaleString('pt-BR')} pts</span>${g.time !== 'SPOT' ? `<span>${esc(g.supervisores.join(', '))}</span>` : ''}</div>
+        ${lista.map(r => `<div class="vt ${r.premio ? 'top' : ''} ${r.elegivel ? '' : 'inel'}"><div class="vt-cab"><span class="vt-pos">${r.posicao}º</span>
+          <b>${esc(r.colab)} <small style="color:var(--sub);font-weight:500">· ${esc(r.uf)}</small>${r.premio ? ` <span class="tag t-feito">${reais(r.premio)}</span>` : ''}${r.empate ? ' <span class="tag t-ultimo">empate</span>' : ''}${r.elegivel ? '' : ` <span class="tag t-parado">faltam ${r.falta.toLocaleString('pt-BR')} pts</span>`}</b>
           <span class="vt-n">${r.pontos.toLocaleString('pt-BR')}<small> pts</small></span></div>
           <i class="vt-barra"><u style="width:${Math.round(r.pontos / mx * 100)}%"></u></i>
           <div class="vt-seg"><span>Aprovados <b>${r.aprovadas}</b></span><span>Gôndolas <b>${r.gondolas}</b></span>${r.pendentes ? `<span style="color:var(--amarelo)">+${r.potencial} pts em validação</span>` : ''}</div></div>`).join('')}
@@ -1614,20 +1634,25 @@
     const kp = (cls, t, v, sub, p) => `<div class="kpi ${cls}" style="cursor:default"><span>${t}</span><b>${v}</b><small>${sub}</small>${p != null ? `<i class="kbar"><u style="width:${p}%"></u></i>` : ''}</div>`;
     let html = `<div class="kpis">
         ${kp('k-marrom', 'Pontos validados', T.pontos.toLocaleString('pt-BR'), pl(T.aprovadas, 'ponto extra aprovado', 'pontos extras aprovados') + ' nas 2 etapas')}
-        ${T.premiacao ? kp('k-verde', 'Premiação prevista', reais(T.premiacao.total), reais(T.premiacao.totalIndividual) + ' individual · ' + reais(T.premiacao.totalEquipe) + ' equipes') : ''}
+        ${T.premiacao ? kp('k-verde', 'Premiação prevista', reais(T.premiacao.total), reais(T.premiacao.totalIndividual) + ' individual · ' + reais(T.premiacao.totalEquipe) + ' equipes' + (T.premiacao.totalBrasil ? ' · ' + reais(T.premiacao.totalBrasil) + ' Top Brasil' : '')) : ''}
         ${kp('k-teal', 'Validação concluída', pct(decididos, validos) + '%', decididos + ' de ' + validos + ' envios válidos', pct(decididos, validos))}
-        ${kp('k-navy', 'Aguardam supervisor', T.pendSup, 'primeira etapa')}
+        ${T.premiacao && T.premiacao.participantes ? kp('k-verde', 'Elegíveis (mín. ' + (T.minimo || 0).toLocaleString('pt-BR') + ' pts)', T.premiacao.elegiveis.DIRETOS + T.premiacao.elegiveis.SPOT,
+          'DIRETOS ' + T.premiacao.elegiveis.DIRETOS + ' de ' + T.premiacao.participantes.DIRETOS + ' · SPOT ' + T.premiacao.elegiveis.SPOT + ' de ' + T.premiacao.participantes.SPOT) : ''}
+        ${kp('k-navy', 'Aguardam 1ª validação', T.pendSup, 'supervisor (DIRETOS) · agência (SPOT)')}
         ${kp('k-cinza', 'Aguardam BKO', T.pendBko, 'double check')}
-        ${kp('k-verm', 'Reprovadas', T.repSup + T.repBko, T.repSup + ' supervisor · ' + T.repBko + ' BKO')}
+        ${kp('k-verm', 'Reprovadas', T.repSup + T.repBko, T.repSup + ' na 1ª validação · ' + T.repBko + ' BKO')}
         ${kp('k-cinza', 'Duplicadas', T.duplicadas, 'mesma loja, semana e tipo')}
       </div>
-      <div class="ajuda" style="margin-top:10px">Regra: vale 1 ponto extra de cada tipo por promotor, loja e semana. Gôndola ${T.pontosTipo.GONDOLA} · geladeira ${T.pontosTipo.GELADEIRA} · ilha ${T.pontosTipo.ILHA} pontos. Só soma depois do supervisor e do BKO.</div>
+      <div class="ajuda" style="margin-top:10px">Regra: vale 1 ponto extra de cada tipo por promotor, loja e semana. Gôndola ${T.pontosTipo.GONDOLA} · geladeira ${T.pontosTipo.GELADEIRA} · ilha ${T.pontosTipo.ILHA} pontos. Só soma depois da 1ª validação (supervisor no DIRETOS, agência na SPOT) e do BKO.</div>
+      ${T.times ? `<div class="tm-split">${['DIRETOS', 'SPOT'].map(t => { const x = T.times[t] || {}; return `<div class="tm-box ${t}">${tmTag(t)}
+        <div class="lin"><span>Envios</span><b>${(x.envios || 0).toLocaleString('pt-BR')}</b></div><div class="lin"><span>Aprovados</span><b>${(x.aprovadas || 0).toLocaleString('pt-BR')}</b></div>
+        <div class="lin"><span>Pontos validados</span><b>${(x.pontos || 0).toLocaleString('pt-BR')}</b></div><div class="lin"><span>Em validação</span><b>${(x.pendentes || 0).toLocaleString('pt-BR')}</b></div></div>`; }).join('')}</div>` : ''}
       ${premiacaoHtml(T)}
-      <div class="secao">Supervisor x BKO</div>
-      <div class="ajuda">Divergência = fotos que o supervisor aprovou e o BKO reprovou. Quanto maior, mais o supervisor está aprovando fora do critério.</div>
-      <div class="bloco" style="margin-top:10px;overflow-x:auto"><table class="tabela-tg"><tr><th>Supervisor</th><th>BKO</th><th>Envios</th><th>Pendentes</th><th>Aprovou</th><th>Reprovou</th><th>BKO conferiu</th><th>Divergência</th></tr>
+      <div class="secao">1ª validação x BKO</div>
+      <div class="ajuda">Divergência = fotos aprovadas na 1ª validação (supervisor ou agência SPOT) e reprovadas pelo BKO. Quanto maior, mais a 1ª validação está aprovando fora do critério.</div>
+      <div class="bloco" style="margin-top:10px;overflow-x:auto"><table class="tabela-tg"><tr><th>1ª validação</th><th>BKO</th><th>Envios</th><th>Pendentes</th><th>Aprovou</th><th>Reprovou</th><th>BKO conferiu</th><th>Divergência</th></tr>
         ${T.supervisores.map(s => { const dv = pct(s.reprovBko, s.conferidas), cor = !s.conferidas ? 'var(--sub)' : dv >= 20 ? 'var(--vermelho)' : dv >= 10 ? 'var(--amarelo)' : 'var(--verde)';
-          return `<tr><td><b>${esc(s.supervisor)}</b></td><td>${esc(s.bko || '—')}</td><td>${s.envios}</td><td>${s.pendSup}</td><td>${s.aprovSup}</td><td>${s.reprovSup}</td><td>${s.conferidas}</td>
+          return `<tr><td>${s.time === 'SPOT' ? tmTag('SPOT') + ' ' : ''}<b>${esc(s.supervisor)}</b></td><td>${esc(s.bko || '—')}</td><td>${s.envios}</td><td>${s.pendSup}</td><td>${s.aprovSup}</td><td>${s.reprovSup}</td><td>${s.conferidas}</td>
             <td style="color:${cor};font-weight:700">${s.conferidas ? dv + '% <small style="color:var(--sub);font-weight:400">(' + s.reprovBko + ')</small>' : '—'}</td></tr>`; }).join('')}</table></div>
       <div class="grade">
         <div><div class="secao">Pontos por semana</div><div class="bloco barras">${T.semanas.map(w => `<div class="b"><div><span>Semana ${br(w.semana)} a ${br(addD(w.semana, 6))}</span><b>${w.pontos.toLocaleString('pt-BR')}</b></div><i><u style="width:${Math.round(w.pontos / Math.max(1, ...T.semanas.map(x => x.pontos)) * 100)}%;background:var(--amarelo);color:var(--amarelo)"></u></i></div>`).join('') || '<div class="vazio">—</div>'}</div></div>
