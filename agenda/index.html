@@ -966,11 +966,11 @@
     const nApoio = dados.lojas.filter(l => l.origem === 'apoio').length;
     $('fApoio').classList.toggle('hidden', !nApoio);
     $('fApoio').textContent = 'Apoio (' + nApoio + ')';
-    const ATS = [['DIRETO', 'Direto'], ['SPOT PROMO', 'Spot Promo'], ['TERCEIROS', 'Terceiros']];
-    $('fAtend').innerHTML = '<option value="">Atendimentos</option>' + ATS.map(([v, n]) => {
-      const q = dados.lojas.filter(l => l.atendimento === v).length;
-      return q ? `<option value="${v}">${n} (${q})</option>` : '';
-    }).join('');
+    // atendimentos com o nome que está na Base (DIRETOS, SPOT PROMO, DINAMICA, ELEVA...), do maior para o menor
+    const ATS = new Map(); dados.lojas.forEach(l => { const n = nomeAt(l); ATS.set(n, (ATS.get(n) || 0) + 1); });
+    $('fAtend').innerHTML = '<option value="">Todos os atendimentos</option>' + [...ATS.entries()]
+      .sort((a, b) => (a[0] === 'SEM ATENDIMENTO') - (b[0] === 'SEM ATENDIMENTO') || b[1] - a[1] || a[0].localeCompare(b[0], 'pt-BR'))
+      .map(([n, q]) => `<option value="${esc(n)}">${esc(n)} (${q})</option>`).join('');
     $('soAgenda').classList.remove('on');
     opcoesLider();
     $('fRota').innerHTML = '';
@@ -1192,7 +1192,7 @@
       if (uf && l.uf !== uf) return false;
       if (rota && l.promotor !== rota) return false;
       if (soLp && !l.lp) return false;
-      if (atend && l.atendimento !== atend) return false;
+      if (atend && nomeAt(l) !== atend) return false;
       if (lid && liderDe(l) !== lid) return false;
       if (soApoio && l.origem !== 'apoio') return false;
       if (termo && !(l.loja + ' ' + l.cod + ' ' + (l.lider || '') + ' ' + l.bandeira + ' ' + l.cidade + ' ' + l.bairro + ' ' + l.promotor + ' ' + (l.supervisor || '') + ' ' + (l.uf || '') + ' ' + (l.regional || ''))
@@ -1204,11 +1204,15 @@
     });
   }
 
+  /* Nome do atendimento como está na Base; páginas antigas do servidor (sem atendNome) caem no nome padrão. */
+  function nomeAt(l){
+    if (l.atendNome) return l.atendNome;
+    if (l.agencia) return String(l.agencia).toUpperCase();
+    return l.atendimento || 'SEM ATENDIMENTO';
+  }
   function tagAtendimento(l){
-    if (l.atendimento === 'DIRETO') return '<span class="tag DIRETO">Direto</span>';
-    if (l.atendimento === 'SPOT PROMO') return '<span class="tag SPOT">Spot Promo</span>';
-    const ag2 = l.agencia && l.agencia.toUpperCase() !== 'TERCEIROS' ? ' · ' + esc(l.agencia) : '';
-    return `<span class="tag TERCEIROS">Terceiros${ag2}</span>`;
+    const cls = l.atendimento === 'DIRETO' ? 'DIRETO' : l.atendimento === 'SPOT PROMO' ? 'SPOT' : 'TERCEIROS';
+    return `<span class="tag ${cls}">${esc(nomeAt(l))}</span>`;
   }
 
   function cardLoja(l, k){
